@@ -52,6 +52,8 @@ from datetime import timedelta
 
 import wmul_logger
 
+logger = wmul_logger.get_logger()
+
 CreateNewsFoldersArguments = namedtuple(
     "CreateNewsFoldersArguments",
     [
@@ -68,9 +70,11 @@ def create_news_folders(start_date, end_date, starting_folder):
     while current_date <= end_date:
         if current_date.isoweekday() < 6:
             this_dates_path = starting_folder / current_date.strftime("%w - %A/%m-%d")
+            logger.info(f"Trying to creat {this_dates_path}")
             this_dates_path.mkdir(parents=True, exist_ok=True)
         current_date += one_day
 
 
 def run_script(arguments):
+    logger.info(f"In run_script with {arguments}")
     create_news_folders(arguments.start_date, arguments.end_date, arguments.starting_folder)
