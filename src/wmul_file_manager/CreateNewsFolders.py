@@ -64,6 +64,8 @@ CreateNewsFoldersArguments = namedtuple(
 )
 
 def create_news_folders(start_date, end_date, starting_folder):
+    if end_date < start_date:
+        raise ValueError("End Date is before start date.")
     current_date = start_date
     one_day = timedelta(days=1)
 
