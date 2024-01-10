@@ -681,7 +681,7 @@ def is_skimmer_working(sources, calendar, email, server, port, username, passwor
 @wmul_file_manager_cli.command()
 @click.argument("start_date", type=DATE)
 @click.argument("end_date", type=DATE)
-@click.argument("starting_folder", type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
+@click.argument("starting_folder", type=click.Path(file_okay=False, dir_okay=True, writable=True))
 def create_news_folders(start_date, end_date, starting_folder):
 
     starting_folder = Path(starting_folder)
