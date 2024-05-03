@@ -16,6 +16,8 @@ Command-Line Options:
                             blank, all old files will be deleted.
 
 ============ Change Log ============
+2024-May-03 = Updated datetime to use UTC.
+
 2018-May-18 = Remove old command-line interface that was housed in this file and based on argparse.
 
 2018-May-16 = Imported from Titanium_Monticello.
@@ -65,6 +67,7 @@ SOFTWARE.
 """
 from collections import namedtuple
 from datetime import datetime
+from datetime import timezone
 
 import wmul_logger
 from wmul_file_manager.utilities.FileNamePrinter import object_cleaner
@@ -98,7 +101,7 @@ def _check_and_delete_old_file(this_file, arguments):
 def _file_is_older(older_than, this_file):
     this_file_stat = this_file.stat()
     this_file_mtime = this_file_stat.st_mtime
-    this_file_datetime = datetime.utcfromtimestamp(this_file_mtime)
+    this_file_datetime = datetime.fromtimestamp(this_file_mtime, timezone.utc)
     return this_file_datetime < older_than
 
 

@@ -2,12 +2,14 @@
 @Author = 'Mike Stanley'
 
 ============ Change Log ============
+2024-May-03 = Updated datetimes to use UTC.
+
 2018-May-16 = Created.
 
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2018 Michael Stanley
+Copyright (c) 2018, 2024 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -128,21 +130,21 @@ def setup__file_is_older(fs, mocker):
 @pytest.mark.delete_old
 def test__file_is_older__is(setup__file_is_older):
     this_file = setup__file_is_older
-    older_than = datetime.datetime(year=2018, month=5, day=1, hour=12)
+    older_than = datetime.datetime(year=2018, month=5, day=1, hour=12, tzinfo=datetime.timezone.utc)
     assert DeleteOldFiles._file_is_older(older_than=older_than, this_file=this_file)
 
 
 @pytest.mark.delete_old
 def test__file_is_older__is_not(setup__file_is_older):
     this_file = setup__file_is_older
-    older_than = datetime.datetime(year=2017, month=5, day=1, hour=12)
+    older_than = datetime.datetime(year=2017, month=5, day=1, hour=12, tzinfo=datetime.timezone.utc)
     assert not DeleteOldFiles._file_is_older(older_than=older_than, this_file=this_file)
 
 
 @pytest.mark.delete_old
 def test__file_is_older__is_equal(setup__file_is_older):
     this_file = setup__file_is_older
-    older_than = datetime.datetime(year=2018, month=1, day=1, hour=12)
+    older_than = datetime.datetime(year=2018, month=1, day=1, hour=12, tzinfo=datetime.timezone.utc)
     assert not DeleteOldFiles._file_is_older(older_than=older_than, this_file=this_file)
 
 

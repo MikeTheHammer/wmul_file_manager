@@ -4,6 +4,8 @@
 This file exposes the command-line interface to the script.
 
 ============ Change Log ============
+2024-May-03 = Made Delete Old Files timezone aware.
+
 2023-May-05 = Added timezone argument to is_the_skimmer_working
 
 2018-Jul-05 = Modified cli for DeleteOldFiles to permit either a specified date or a days_older_than argument.
@@ -578,6 +580,8 @@ def delete_old_files(first_path, days_old, cutoff_date, remove_folders, suffixes
         days_old = datetime.timedelta(days=days_old)
         cutoff_date = datetime.datetime.today() - days_old
         cutoff_date = cutoff_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    cutoff_date = cutoff_date.astimezone(tz=datetime.timezone.utc)
 
     _logger.info(f"In cli.delete_old_files with: {locals()}")
     arguments = DeleteOldFilesArguments(

@@ -2,12 +2,14 @@
 @Author = 'Mike Stanley'
 
 ============ Change Log ============
+2024-May-03 = Made Delete Old Files timezone aware. Began improving use of wmul_test_utils.
+
 2018-Apr-30 = Created.
 
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2018 Michael Stanley
+Copyright (c) 2018, 2024 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +41,7 @@ from wmul_file_manager.FindOldDirectories import FindOldDirectoriesArguments
 from wmul_file_manager.DeleteOldFiles import DeleteOldFilesArguments
 from wmul_file_manager.DidTheSkimmerCopyTheFiles import DidTheSkimmerCopyTheFiles
 from wmul_file_manager import IsTheSkimmerWorking
+from wmul_test_utils import generate_true_false_matrix_from_list_of_strings, make_namedtuple
 import datetime
 import pathlib
 import pytest
@@ -934,10 +937,9 @@ def test_copy_skimmer_zero_pairs(fs, mocker):
 
     mock_run_skimmer_copy.assert_not_called()
 
-
-delete_old_files_test_options = namedtuple(
-    "delete_old_files_test_options",
-    [
+delete_old_files_params, delete_old_files_ids = generate_true_false_matrix_from_list_of_strings(
+    "delete_old_files_options",
+     [
         "use_remove_folders",
         "use_suffixes",
         "use_days_old",
@@ -945,8 +947,7 @@ delete_old_files_test_options = namedtuple(
     ]
 )
 
-
-@pytest.fixture(scope="function", params=generate_binary_matrix_from_named_tuple(delete_old_files_test_options))
+@pytest.fixture(scope="function", params=delete_old_files_params, ids=delete_old_files_ids)
 def setup_delete_old_files(mocker, request, tmpdir):
     params = request.param
 
@@ -960,6 +961,7 @@ def setup_delete_old_files(mocker, request, tmpdir):
         days_old = "7"
         days_old_cutoff_date = datetime.datetime.today() - datetime.timedelta(days=int(days_old))
         days_old_cutoff_date = days_old_cutoff_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        days_old_cutoff_date = days_old_cutoff_date.astimezone(tz=datetime.timezone.utc)
     else:
         days_old = None
         days_old_cutoff_date = None
@@ -967,6 +969,7 @@ def setup_delete_old_files(mocker, request, tmpdir):
     if params.use_cutoff_date:
         cutoff = "2018-05-15"
         cutoff_date = datetime.datetime.strptime(cutoff, "%Y-%m-%d")
+        cutoff_date = cutoff_date.astimezone(tz=datetime.timezone.utc)
     else:
         cutoff = None
         cutoff_date = None
