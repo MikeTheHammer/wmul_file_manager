@@ -67,6 +67,8 @@ from wmul_file_manager.BulkCopier import BulkCopierArguments
 from wmul_file_manager.BulkCopier import run_script as run_bulk_copier
 from wmul_file_manager.ConvertFolderToMP3 import ConvertFolderToMP3Arguments
 from wmul_file_manager.ConvertFolderToMP3 import run_script as run_convert_folder_to_mp3
+from wmul_file_manager.ConvertFolderToMP4 import ConvertFolderToMP4Arguments
+from wmul_file_manager.ConvertFolderToMP4 import run_script as run_convert_folder_to_mp4
 from wmul_file_manager.DeleteJunkFiles import DeleteJunkFilesArguments
 from wmul_file_manager.DeleteJunkFiles import run_script as run_delete_junk_files
 from wmul_file_manager.EquivalentFileFinder import EquivalentFileFinderArguments
@@ -231,6 +233,51 @@ def convert_folder_to_mp3(sources, executable, suffix, bitrate, maxthreads, dele
 
     run_convert_folder_to_mp3(arguments)
 
+@wmul_file_manager_cli.command()
+@click.argument('sources', type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True), nargs=-1)
+@click.argument('executable', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True), nargs=1)
+@click.option('--suffix', type=str, default=".mov",
+              help="The suffix of the files to be converted (E.G. '.mov'. Must include the dot ('.')")
+@click.option("--audio_codec", type=str, default="aac", help="What audio codec to use.")
+@click.option("--audio_bitrate", type=int, default=160, 
+              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
+@click.option("--video_codec", type=str, default="h264", help="What video codec to use.")
+@click.option("--video_bitrate", type=int, default=10, 
+              help="What video bitrate to use, in megabits. E.G. 10 is 10 megabits.")
+@click.option('--threads', type=int, default=3,
+              help="How many threads ffmpeg can use Should be <= the number of CPU cores. ")
+@click.option('--delete', is_flag=True, help="Delete the .mov files after conversion.")
+@click.option('--separate_folder', is_flag=True,
+              help="Use a separate folder for the converted files. Will be the same name as the source folder with "
+                   "_mp4 appended.")
+def convert_folder_to_mp4(sources, executable, suffix, audio_codec, audio_bitrate, video_codec, video_bitrate, 
+                          threads, delete, separate_folder):
+    """
+    Script to archive a directory or set of directories into mp4 format. 
+    
+    SOURCES The path(s) containing the files to be archived. All subfolders will also be converted.
+
+    EXECUTABLE The path to the ffmpeg executable. It does not have to actually be ffmpeg, but does need to use the
+    same command-line API as ffmpeg.
+    """
+    _logger.info(f"With args: {locals()}")
+
+    source_folders_arg = [Path(source_path) for source_path in sources]
+
+    arguments = ConvertFolderToMP4Arguments(
+        source_paths=source_folders_arg,
+        desired_suffix=suffix,
+        audio_codec=audio_codec,
+        audio_bitrate=audio_bitrate,
+        video_codec=video_codec,
+        video_bitrate=video_bitrate,
+        threads=threads,
+        ffmpeg_executable=executable,
+        separate_folder_flag=separate_folder,
+        delete_files_flag=delete
+    )
+
+    run_convert_folder_to_mp4(arguments)
 
 @wmul_file_manager_cli.command()
 @click.argument('sources', type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True), nargs=-1)

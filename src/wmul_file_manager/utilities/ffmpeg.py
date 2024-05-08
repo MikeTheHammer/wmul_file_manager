@@ -47,7 +47,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import subprocess
+import wmul_logger
 
+logger = wmul_logger.get_logger()
 
 def call(input_file_path, output_file_path, codec, bitrate, executable_path):
     bitrate = int(bitrate)
@@ -70,3 +72,50 @@ def call(input_file_path, output_file_path, codec, bitrate, executable_path):
         stderr=subprocess.STDOUT
     )
 
+def convert_video(input_file_path, output_file_path, video_codec, video_bitrate, audio_codec, audio_bitrate, threads, executable_path):
+    audio_bitrate = int(audio_bitrate)
+    video_bitrate = int(video_bitrate)
+
+    if audio_codec == "mp3":
+        audio_codec = "libmp3lame"
+
+    if audio_bitrate > 192:
+        audio_bitrate = "320k"
+    elif audio_bitrate > 160:
+        audio_bitrate = "192k"
+    elif audio_bitrate > 96:
+        audio_bitrate = "160k"
+    elif audio_bitrate <= 96:
+        audio_bitrate = "96k"
+
+    if video_bitrate > 19:
+        video_bitrate = "20000k"
+    elif video_bitrate > 14: 
+        video_bitrate = "15000k"
+    elif video_bitrate > 9:
+        video_bitrate = "10000k"
+    elif video_bitrate > 4:
+        video_bitrate = "5000k"
+    else:
+        video_bitrate = "1000k"
+
+    subprocess_args = [
+        executable_path, 
+        "-i", input_file_path, 
+        "-c:a", audio_codec,  
+        "-b:a", audio_bitrate, 
+        "-c:v", video_codec, 
+        "-b:v", video_bitrate, 
+        "-threads", str(threads), 
+        output_file_path
+    ]
+
+    logger.info(f"subprocess_args: {subprocess_args}")
+
+    subprocess_result = subprocess.run(
+        subprocess_args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+
+    return subprocess_result.returncode
