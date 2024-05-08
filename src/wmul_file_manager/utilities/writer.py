@@ -3,11 +3,11 @@
 
 System to write text either to a file or to standard out.
 
-Context manager get_writer takes an optional file name.
+Context manager get_writer takes an optional file name and an append option.
 
 If a name is given, it manages opening and closing the file and returns a method to write to the file.
-    The file is opened in append mode. Text sent to the file output method will have a newline appended to it with
-    each call.
+    The file is opened in append mode by default. If `append=False`, then the file will be truncated. 
+    Text sent to the file output method will have a newline appended to it with each call.
 
 If no name is given, it returns a method that passes along to the print method.
 
@@ -29,6 +29,8 @@ The text will be sent to standard out. The print command automatically includes 
     not add a redundant one.
 
 ============ Change Log ============
+2024-May-08 = Make get_writer use the append option.
+
 2018-May-08 = Completely re-wrote write_to_file_or_std_out into a more robust system.
 
 2018-May-07 = Imported write_to_file_or_std_out from Titanium_Monticello.Utilities
@@ -38,7 +40,7 @@ The text will be sent to standard out. The print command automatically includes 
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2018 Michael Stanley
+Copyright (c) 2018, 2024 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -96,8 +98,7 @@ def _write_to_std_out(data):
 @contextlib.contextmanager
 def get_writer(file_name=None, append=True):
     if file_name:
-
-        writer = _WriteToFile(file_name=file_name)
+        writer = _WriteToFile(file_name=file_name, append=append)
         writer.open_file()
         yield writer.write
         writer.close_file()
