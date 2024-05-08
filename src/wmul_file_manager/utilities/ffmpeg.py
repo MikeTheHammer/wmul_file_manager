@@ -5,6 +5,8 @@ Interface to call ffmpeg from within Python. Note that the executable called nee
 needs to obey the same command-line options.
 
 ============ Change Log ============
+2024-May-08 = Added convert_video method for compressing video files.
+
 2018-May-01 = Imported from Titanium_Monticello to this project.
 
               Change bitrate comparisons from equality to greater-than / less-than.
