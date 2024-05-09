@@ -60,16 +60,25 @@ def call(input_file_path, output_file_path, codec, bitrate, executable_path):
         codec = "libmp3lame"
 
     if bitrate > 192:
-        bitrate = "320000"
+        bitrate_as_string = "320000"
     elif bitrate > 160:
-        bitrate = "192000"
+        bitrate_as_string = "192000"
     elif bitrate > 96:
-        bitrate = "160000"
+        bitrate_as_string = "160000"
     elif bitrate <= 96:
-        bitrate = "96000"
+        bitrate_as_string = "96000"
+
+    subprocess_args = [
+        executable_path, 
+        "-i", input_file_path, 
+        "-codec:a", codec,  
+        "-b:a", bitrate_as_string, 
+        "-threads", str(threads), 
+        output_file_path
+    ]
 
     return subprocess.run(
-        [executable_path, "-i", input_file_path, "-codec:a", codec,  "-b:a", bitrate, output_file_path],
+        subprocess_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
@@ -82,32 +91,32 @@ def convert_video(input_file_path, output_file_path, video_codec, video_bitrate,
         audio_codec = "libmp3lame"
 
     if audio_bitrate > 192:
-        audio_bitrate = "320k"
+        audio_bitrate_as_string = "320k"
     elif audio_bitrate > 160:
-        audio_bitrate = "192k"
+        audio_bitrate_as_string = "192k"
     elif audio_bitrate > 96:
-        audio_bitrate = "160k"
+        audio_bitrate_as_string = "160k"
     elif audio_bitrate <= 96:
-        audio_bitrate = "96k"
+        audio_bitrate_as_string = "96k"
 
     if video_bitrate > 19:
-        video_bitrate = "20000k"
+        video_bitrate_as_string = "20000k"
     elif video_bitrate > 14: 
-        video_bitrate = "15000k"
+        video_bitrate_as_string = "15000k"
     elif video_bitrate > 9:
-        video_bitrate = "10000k"
+        video_bitrate_as_string = "10000k"
     elif video_bitrate > 4:
-        video_bitrate = "5000k"
+        video_bitrate_as_string = "5000k"
     else:
-        video_bitrate = "1000k"
+        video_bitrate_as_string = "1000k"
 
     subprocess_args = [
         executable_path, 
         "-i", input_file_path, 
         "-c:a", audio_codec,  
-        "-b:a", audio_bitrate, 
+        "-b:a", audio_bitrate_as_string, 
         "-c:v", video_codec, 
-        "-b:v", video_bitrate, 
+        "-b:v", video_bitrate_as_string, 
         "-threads", str(threads), 
         output_file_path
     ]
