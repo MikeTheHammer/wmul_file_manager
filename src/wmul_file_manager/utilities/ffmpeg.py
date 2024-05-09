@@ -5,7 +5,9 @@ Interface to call ffmpeg from within Python. Note that the executable called nee
 needs to obey the same command-line options.
 
 ============ Change Log ============
-2024-May-08 = Added convert_video method for compressing video files.
+2024-May-08 = Added .convert_video method for compressing video files.
+              Change .call to .convert_audio .
+              Add threads option to .convert_audio .
 
 2018-May-01 = Imported from Titanium_Monticello to this project.
 
@@ -53,7 +55,7 @@ import wmul_logger
 
 logger = wmul_logger.get_logger()
 
-def call(input_file_path, output_file_path, codec, bitrate, executable_path):
+def convert_audio(input_file_path, output_file_path, codec, bitrate, threads, executable_path):
     bitrate = int(bitrate)
 
     if codec == "mp3":

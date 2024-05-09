@@ -319,8 +319,13 @@ def _convert_file(file_conversion_queue, file_deletion_queue, call_ffmpeg):
 
 def run_script(arguments):
     logger.debug(f"Starting run_script with {arguments}")
-    call_ffmpeg = partial(ffmpeg.call, codec="mp3", bitrate=arguments.bitrate,
-                          executable_path=arguments.ffmpeg_executable)
+    call_ffmpeg = partial(
+        ffmpeg.convert_audio, 
+        codec="mp3", 
+        bitrate=arguments.bitrate,
+        threads=3,
+        executable_path=arguments.ffmpeg_executable
+    )
     if arguments.yesterday_flag:
         archive_yesterdays_files(arguments, call_ffmpeg)
     else:

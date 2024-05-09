@@ -28,6 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 from wmul_file_manager.utilities import ffmpeg
+from wmul_test_utils import make_namedtuple
 import pytest
 import subprocess
 
@@ -40,55 +41,110 @@ def setup_ffmpeg(mocker):
     output_file_path = "dst"
     codec = "mp3"
     bitrate = 160
+    threads = '3'
     executable_path = "foo.exe"
 
-    yield mock_sub_run, input_file_path, output_file_path, codec, bitrate, executable_path
+    return make_namedtuple(
+        "setup_ffmpeg",
+        mock_sub_run=mock_sub_run,
+        input_file_path=input_file_path,
+        output_file_path=output_file_path,
+        codec=codec,
+        bitrate=bitrate,
+        threads=threads,
+        executable_path=executable_path
+    )
 
 
 def test_happy_path(setup_ffmpeg):
-    mock_sub_run, input_file_path, output_file_path, codec, bitrate, executable_path = setup_ffmpeg
+    mock_sub_run = setup_ffmpeg.mock_sub_run
+    input_file_path = setup_ffmpeg.input_file_path
+    output_file_path = setup_ffmpeg.output_file_path
+    codec = setup_ffmpeg.codec
+    bitrate = setup_ffmpeg.bitrate
+    threads = setup_ffmpeg.threads
+    executable_path = setup_ffmpeg.executable_path
 
-    ffmpeg.call(input_file_path=input_file_path, output_file_path=output_file_path, codec=codec, bitrate=bitrate,
-                executable_path=executable_path)
+    ffmpeg.convert_audio(
+        input_file_path=input_file_path, 
+        output_file_path=output_file_path, 
+        codec=codec, 
+        bitrate=bitrate,
+        threads=threads,
+        executable_path=executable_path
+    )
 
     expected_codec = "libmp3lame"
     expected_bitrate = "160000"
 
     mock_sub_run.assert_called_once_with(
-        [executable_path, "-i", input_file_path, "-codec:a",
-         expected_codec, "-b:a", expected_bitrate, output_file_path],
+        [
+            executable_path, 
+            "-i", input_file_path, 
+            "-codec:a", expected_codec, 
+            "-b:a", expected_bitrate, 
+            "-threads", threads,
+            output_file_path
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
 
 
 def test_non_mp3_codec(setup_ffmpeg):
-    mock_sub_run, input_file_path, output_file_path, codec, bitrate, executable_path = setup_ffmpeg
+    mock_sub_run = setup_ffmpeg.mock_sub_run
+    input_file_path = setup_ffmpeg.input_file_path
+    output_file_path = setup_ffmpeg.output_file_path
+    bitrate = setup_ffmpeg.bitrate
+    threads = setup_ffmpeg.threads
+    executable_path = setup_ffmpeg.executable_path
 
     codec = "aac"
 
-    ffmpeg.call(input_file_path=input_file_path, output_file_path=output_file_path, codec=codec, bitrate=bitrate,
-                executable_path=executable_path)
+    ffmpeg.convert_audio(
+        input_file_path=input_file_path, 
+        output_file_path=output_file_path, 
+        codec=codec, 
+        bitrate=bitrate,
+        threads=threads,
+        executable_path=executable_path
+    )
 
     expected_bitrate = "160000"
 
     mock_sub_run.assert_called_once_with(
-        [executable_path, "-i", input_file_path, "-codec:a",
-         codec, "-b:a", expected_bitrate, output_file_path],
+        [
+            executable_path,
+            "-i", input_file_path,
+            "-codec:a", codec,
+            "-b:a", expected_bitrate,
+            "-threads", threads,
+            output_file_path
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
 
 
 def test_non_numeric_bitrate(setup_ffmpeg):
-    mock_sub_run, input_file_path, output_file_path, codec, bitrate, executable_path = setup_ffmpeg
+    input_file_path = setup_ffmpeg.input_file_path
+    output_file_path = setup_ffmpeg.output_file_path
+    codec = setup_ffmpeg.codec
+    bitrate = setup_ffmpeg.bitrate
+    threads = setup_ffmpeg.threads
+    executable_path = setup_ffmpeg.executable_path
 
     bitrate = "foo"
 
     with pytest.raises(ValueError):
-        ffmpeg.call(input_file_path=input_file_path, output_file_path=output_file_path, codec=codec, bitrate=bitrate,
-                    executable_path=executable_path)
-
+        ffmpeg.convert_audio(
+            input_file_path=input_file_path, 
+            output_file_path=output_file_path, 
+            codec=codec, 
+            bitrate=bitrate,
+            threads=threads,
+            executable_path=executable_path
+        )
 
 bitrates_to_try = [
     (3000, "320000"),
@@ -110,27 +166,34 @@ bitrate_ids = [f"{number_ver} : {string_ver}" for number_ver, string_ver in bitr
 
 @pytest.mark.parametrize('bitrate, expected_bitrate', bitrates_to_try, ids=bitrate_ids)
 def test_bitrate(setup_ffmpeg, bitrate, expected_bitrate):
-    mock_sub_run, input_file_path, output_file_path, codec, _, executable_path = setup_ffmpeg
+    print(f"{bitrate=}\n{expected_bitrate=}")
+    mock_sub_run = setup_ffmpeg.mock_sub_run
+    input_file_path = setup_ffmpeg.input_file_path
+    output_file_path = setup_ffmpeg.output_file_path
+    codec = setup_ffmpeg.codec
+    threads = setup_ffmpeg.threads
+    executable_path = setup_ffmpeg.executable_path
 
-    ffmpeg.call(input_file_path=input_file_path, output_file_path=output_file_path, codec=codec, bitrate=bitrate,
-                executable_path=executable_path)
+    ffmpeg.convert_audio(
+        input_file_path=input_file_path,
+        output_file_path=output_file_path, 
+        codec=codec, 
+        bitrate=bitrate,
+        threads=threads,
+        executable_path=executable_path
+    )
 
     expected_codec = "libmp3lame"
 
     mock_sub_run.assert_called_once_with(
-        [executable_path, "-i", input_file_path, "-codec:a",
-         expected_codec, "-b:a", expected_bitrate, output_file_path],
+        [
+            executable_path,
+            "-i", input_file_path,
+            "-codec:a", expected_codec,
+            "-b:a", expected_bitrate,
+            "-threads", threads,
+            output_file_path
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
-
-
-
-
-
-
-
-
-
-
-

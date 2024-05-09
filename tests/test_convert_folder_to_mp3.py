@@ -821,7 +821,7 @@ def test__convert_file_ffmpeg_called_correctly(setup__convert_file):
 
 @pytest.fixture(scope="function")
 def setup_run_script(mocker):
-    mock_ffmpeg = mocker.patch("wmul_file_manager.utilities.ffmpeg.call")
+    mock_ffmpeg = mocker.patch("wmul_file_manager.utilities.ffmpeg.convert_audio")
     mock_yesterdays_files = mocker.patch("wmul_file_manager.ConvertFolderToMP3.archive_yesterdays_files")
     mock_list_of_folders = mocker.patch("wmul_file_manager.ConvertFolderToMP3.archive_list_of_folders")
 
