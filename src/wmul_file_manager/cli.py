@@ -4,6 +4,8 @@
 This file exposes the command-line interface to the script.
 
 ============ Change Log ============
+2024-May-13 = Add compress-media-in-folder, convert-folder-to-mp4.
+
 2024-May-03 = Made Delete Old Files timezone aware.
 
 2023-May-05 = Added timezone argument to is_the_skimmer_working
@@ -65,6 +67,7 @@ import datetime
 from pathlib import Path
 from wmul_file_manager.BulkCopier import BulkCopierArguments
 from wmul_file_manager.BulkCopier import run_script as run_bulk_copier
+from wmul_file_manager.CompressMediaInFolder import AudioCompressor, VideoCompressor, CompressMediaInFolder
 from wmul_file_manager.ConvertFolderToMP3 import ConvertFolderToMP3Arguments
 from wmul_file_manager.ConvertFolderToMP3 import run_script as run_convert_folder_to_mp3
 from wmul_file_manager.ConvertFolderToMP4 import ConvertFolderToMP4Arguments
@@ -183,6 +186,80 @@ def bulk_copy(sources, destination, exclude_ext, ignore_folder, force_copy, dele
     )
 
     run_bulk_copier(arguments=arguments)
+
+
+@wmul_file_manager_cli.command()
+@click.argument('sources', type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True), nargs=-1)
+@click.argument('executable', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True), nargs=1)
+@click.option('--audio_source_suffixes', type=str, default=".wav",
+              help="A space-separated list of the suffixes of the audio files to be compressed. (E.G. '.wav .foo'. Must include the dot ('.')")
+@click.option("--audio_file_audio_codec", type=str, default="aac", help="What audio codec to use.")
+@click.option("--audio_file_audio_bitrate", type=int, default=160, 
+              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
+@click.option("--audio_destination_suffix", type=str, default=".aac", help="The suffix to append to audio files after compression.")
+@click.option('--video_source_suffixes', type=str, default=".mov",
+              help="A space-separated list of the suffixes of the video files to be compressed. (E.G. '.mov .mpeg'. Must include the dot ('.')")
+@click.option("--video_file_audio_codec", type=str, default="aac", help="What audio codec to use.")
+@click.option("--video_file_audio_bitrate", type=int, default=160, 
+              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
+@click.option("--video_codec", type=str, default="h264", help="What video codec to use.")
+@click.option("--video_bitrate", type=int, default=10, 
+              help="What video bitrate to use, in megabits. E.G. 10 is 10 megabits.")
+@click.option("--video_destination_suffix", type=str, default=".mp4", help="The suffix to append to video files after compression.")
+@click.option('--threads', type=int, default=3,
+              help="How many threads ffmpeg can use Should be <= the number of CPU cores.")
+@click.option('--delete', is_flag=True, help="Delete the original media files after compression.")
+@click.option('--separate_folder', is_flag=True,
+              help="Use a separate folder for the compressed files. Will be the same name as the source folder with "
+                   "_cmp appended.")
+def compress_media_in_folder(sources, executable, audio_source_suffixes, audio_file_audio_codec, 
+                             audio_file_audio_bitrate, audio_destination_suffix, video_source_suffixes, 
+                             video_file_audio_codec, video_file_audio_bitrate, video_codec, video_bitrate, 
+                             video_destination_suffix, threads, delete, separate_folder):
+    """
+    Script to archive a directory or set of directories into mp4 format. 
+    
+    SOURCES The path(s) containing the files to be archived. All subfolders will also be converted.
+
+    EXECUTABLE The path to the ffmpeg executable. It does not have to actually be ffmpeg, but does need to use the
+    same command-line API as ffmpeg.
+    """
+    _logger.info(f"With args: {locals()}")
+
+    audio_source_suffixes = audio_source_suffixes.split()
+    video_source_suffixes = video_source_suffixes.split()
+
+    audio_compressor = AudioCompressor(
+        suffixes=audio_source_suffixes,
+        audio_codec=audio_file_audio_codec,
+        audio_bitrate=audio_file_audio_bitrate,
+        destination_suffix=audio_destination_suffix,
+        ffmpeg_threads=threads,
+        ffmpeg_executable=executable
+    )
+
+    video_compressor = VideoCompressor(
+        suffixes=video_source_suffixes,
+        video_codec=video_codec,
+        video_bitrate=video_bitrate,
+        audio_codec=video_file_audio_codec,
+        audio_bitrate=video_file_audio_bitrate,
+        destination_suffix=video_destination_suffix,
+        ffmpeg_threads=threads,
+        ffmpeg_executable=executable
+    )
+    
+    source_folders = [Path(source_path) for source_path in sources]
+
+    cmif = CompressMediaInFolder(
+        source_paths=source_folders,
+        audio_compressor=audio_compressor,
+        video_compressor=video_compressor,
+        separate_folder_flag=separate_folder,
+        delete_files_flag=delete
+    )
+
+    cmif.archive_list_of_folders()
 
 
 @wmul_file_manager_cli.command()
