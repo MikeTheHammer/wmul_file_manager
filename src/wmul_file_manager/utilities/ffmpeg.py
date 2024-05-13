@@ -71,19 +71,26 @@ def convert_audio(input_file_path, output_file_path, codec, bitrate, threads, ex
         bitrate_as_string = "96000"
 
     subprocess_args = [
-        executable_path, 
-        "-i", input_file_path, 
+        str(executable_path), 
+        "-i", str(input_file_path), 
         "-codec:a", codec,  
         "-b:a", bitrate_as_string, 
         "-threads", str(threads), 
-        output_file_path
+        str(output_file_path)
     ]
 
-    return subprocess.run(
+    logger.info(f"subprocess_args: {subprocess_args}")
+
+    subprocess_result = subprocess.run(
         subprocess_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
+
+    if subprocess_result.returncode != 0:
+        logger.debug(f"{subprocess_result}")
+
+    return subprocess_result.returncode
 
 def convert_video(input_file_path, output_file_path, video_codec, video_bitrate, audio_codec, audio_bitrate, threads, executable_path):
     audio_bitrate = int(audio_bitrate)
@@ -113,14 +120,14 @@ def convert_video(input_file_path, output_file_path, video_codec, video_bitrate,
         video_bitrate_as_string = "1000k"
 
     subprocess_args = [
-        executable_path, 
-        "-i", input_file_path, 
+        str(executable_path), 
+        "-i", str(input_file_path),
         "-c:a", audio_codec,  
         "-b:a", audio_bitrate_as_string, 
         "-c:v", video_codec, 
         "-b:v", video_bitrate_as_string, 
         "-threads", str(threads), 
-        output_file_path
+        str(output_file_path)
     ]
 
     logger.info(f"subprocess_args: {subprocess_args}")
