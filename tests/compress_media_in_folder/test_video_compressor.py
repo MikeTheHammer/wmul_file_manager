@@ -72,12 +72,14 @@ def setup_video_compressor_construction(request, fs):
                                  ".bar", ".baz", ".aaa", ".bbb", ".ccc"]
         
     video_codec = "h264"
-    video_bitrate = 10_000
+    video_bitrate = 10
+    expected_bitrate_floor = 12_000_000
     audio_codec = "aac"
     audio_bitrate = 160
     destination_suffix = ".mp4"
     ffmpeg_threads = 3
     ffmpeg_executable = Path("/ffmpeg/ffmpeg.exe")
+    ffprobe_executable = Path("/ffmpeg/ffprobe.exe")
 
     result = VideoCompressor(
         suffixes=suffixes,
@@ -87,7 +89,8 @@ def setup_video_compressor_construction(request, fs):
         audio_bitrate=audio_bitrate,
         destination_suffix=destination_suffix,
         ffmpeg_threads=ffmpeg_threads,
-        ffmpeg_executable=ffmpeg_executable
+        ffmpeg_executable=ffmpeg_executable,
+        ffprobe_executable=ffprobe_executable
     )
 
     return make_namedtuple(
@@ -97,11 +100,13 @@ def setup_video_compressor_construction(request, fs):
         expected_suffixes=expected_suffixes,
         video_codec=video_codec,
         video_bitrate=video_bitrate,
+        expected_bitrate_floor=expected_bitrate_floor,
         audio_codec=audio_codec,
         audio_bitrate=audio_bitrate,
         destination_suffix=destination_suffix,
         ffmpeg_threads=ffmpeg_threads,
         ffmpeg_executable=ffmpeg_executable,
+        ffprobe_executable=ffprobe_executable,
         result=result
     )
 
@@ -129,7 +134,6 @@ def test_destination_suffix_set_correctly(setup_video_compressor_construction):
 
     assert result.destination_suffix == destination_suffix
 
-
 def test_call_ffmpeg_created_correctly(setup_video_compressor_construction):
     call_ffmpeg = setup_video_compressor_construction.result.call_ffmpeg
     call_ffmpeg_kwargs = call_ffmpeg.keywords
@@ -149,17 +153,23 @@ def test_call_ffmpeg_created_correctly(setup_video_compressor_construction):
     assert call_ffmpeg_kwargs['threads'] == threads
     assert call_ffmpeg_kwargs['executable_path'] == executable_path
 
+def test_set_bitrate_computed_correctly(setup_video_compressor_construction):
+    result = setup_video_compressor_construction.result
+    expected_bitrate_floor = setup_video_compressor_construction.expected_bitrate_floor
+
+    assert result.bitrate_floor == expected_bitrate_floor
 
 @pytest.fixture
 def setup_consider_file_for_compression(fs):
     suffixes = [".mOv", ".mp4"]
     video_codec = "h264"
-    video_bitrate = 10_000
+    video_bitrate = 10
     audio_codec = "aac"
     audio_bitrate = 160
     destination_suffix = ".mp4"
     ffmpeg_threads = 3
     ffmpeg_executable = Path("/ffmpeg/ffmpeg.exe")
+    ffprobe_executable = Path("/ffmpeg/ffprobe.exe")
 
     file_info_factory = _CompressorFileInformation.get_factory(
         root_path=Path("/foo/bar"),
@@ -174,7 +184,8 @@ def setup_consider_file_for_compression(fs):
         audio_bitrate=audio_bitrate,
         destination_suffix=destination_suffix,
         ffmpeg_threads=ffmpeg_threads,
-        ffmpeg_executable=ffmpeg_executable
+        ffmpeg_executable=ffmpeg_executable,
+        ffprobe_executable=ffprobe_executable
     )
 
     return make_namedtuple(
@@ -183,9 +194,12 @@ def setup_consider_file_for_compression(fs):
         file_info_factory=file_info_factory
     )
 
-def test_consider_file__is_wanted(setup_consider_file_for_compression):
+def test_consider_file__is_wanted(setup_consider_file_for_compression, mocker):
     video_compressor = setup_consider_file_for_compression.video_compressor
     file_info_factory = setup_consider_file_for_compression.file_info_factory
+
+    mock_determine_video_bitrate = mocker.Mock(return_value = 20_000_000)
+    mocker.patch("wmul_file_manager.utilities.ffmpeg.determine_video_bitrate", mock_determine_video_bitrate)
 
     assert len(video_compressor.list_of_files_for_compression) == 0
 
@@ -216,9 +230,12 @@ def test_consider_file__is_not_wanted(setup_consider_file_for_compression):
 
     assert file_information.file_info_type == _CompressorFileInformationType.Unchecked_File
 
-def test_consider_file__is_wanted_mangled_suffix(setup_consider_file_for_compression):
+def test_consider_file__is_wanted_mangled_suffix(setup_consider_file_for_compression, mocker):
     video_compressor = setup_consider_file_for_compression.video_compressor
     file_info_factory = setup_consider_file_for_compression.file_info_factory
+
+    mock_determine_video_bitrate = mocker.Mock(return_value = 20_000_000)
+    mocker.patch("wmul_file_manager.utilities.ffmpeg.determine_video_bitrate", mock_determine_video_bitrate)
 
     assert len(video_compressor.list_of_files_for_compression) == 0
 
@@ -234,9 +251,12 @@ def test_consider_file__is_wanted_mangled_suffix(setup_consider_file_for_compres
 
     assert file_information.file_info_type == _CompressorFileInformationType.UnCompressed_Media_File
 
-def test_consider_file__several(setup_consider_file_for_compression):
+def test_consider_file__several(setup_consider_file_for_compression, mocker):
     video_compressor = setup_consider_file_for_compression.video_compressor
     file_info_factory = setup_consider_file_for_compression.file_info_factory
+
+    mock_determine_video_bitrate = mocker.Mock(return_value = 20_000_000)
+    mocker.patch("wmul_file_manager.utilities.ffmpeg.determine_video_bitrate", mock_determine_video_bitrate)
 
     list_of_files_for_compression = video_compressor.list_of_files_for_compression
     assert len(list_of_files_for_compression) == 0
@@ -277,5 +297,63 @@ def test_consider_file__several(setup_consider_file_for_compression):
     matching_files_3 = [file_item for file_item in list_of_files_for_compression
                       if file_item.original_file_name == file_under_consideration_3]
     assert len(matching_files_3) == 1
+
+    assert file_information_3.file_info_type == _CompressorFileInformationType.UnCompressed_Media_File
+
+def test_consider_file__other_factors(setup_consider_file_for_compression, mocker):
+    video_compressor = setup_consider_file_for_compression.video_compressor
+    file_info_factory = setup_consider_file_for_compression.file_info_factory
+
+    file_under_consideration_1 = Path("/foo/bar/test1.mp4")
+    file_under_consideration_2 = Path("/foo/bar/test2.docx")
+    file_under_consideration_3 = Path("/foo/bar/test3.mov")
+
+    def determine_video_bitrate_func(file_name, ffprobe_executable):
+        if file_name == file_under_consideration_1:
+            return 20_000_000
+        else:
+            return 12_000_000
+
+    mock_determine_video_bitrate = mocker.Mock(side_effect = determine_video_bitrate_func)
+    mocker.patch("wmul_file_manager.utilities.ffmpeg.determine_video_bitrate", mock_determine_video_bitrate)
+
+    list_of_files_for_compression = video_compressor.list_of_files_for_compression
+    assert len(list_of_files_for_compression) == 0
+
+    file_information_1 = file_info_factory(file_under_consideration_1)
+    result_1 = video_compressor.consider_file_for_compression(file_under_consideration=file_information_1)
+
+    assert result_1
+    assert len(list_of_files_for_compression) == 1
+
+    matching_files_1 = [file_item for file_item in list_of_files_for_compression
+                      if file_item.original_file_name == file_under_consideration_1]
+    assert len(matching_files_1) == 1
+
+    assert file_information_1.file_info_type == _CompressorFileInformationType.UnCompressed_Media_File
+
+    
+    file_information_2 = file_info_factory(file_under_consideration_2)
+    result_2 = video_compressor.consider_file_for_compression(file_under_consideration=file_information_2)
+
+    assert not result_2
+    assert len(list_of_files_for_compression) == 1
+
+    matching_files_2 = [file_item for file_item in list_of_files_for_compression
+                      if file_item.original_file_name == file_under_consideration_2]
+    assert len(matching_files_2) == 0
+
+    assert file_information_2.file_info_type == _CompressorFileInformationType.Unchecked_File
+
+    
+    file_information_3 = file_info_factory(file_under_consideration_3)
+    result_3 = video_compressor.consider_file_for_compression(file_under_consideration=file_information_3)
+
+    assert result_3
+    assert len(list_of_files_for_compression) == 1
+
+    matching_files_3 = [file_item for file_item in list_of_files_for_compression
+                      if file_item.original_file_name == file_under_consideration_3]
+    assert len(matching_files_3) == 0
 
     assert file_information_3.file_info_type == _CompressorFileInformationType.UnCompressed_Media_File

@@ -29,9 +29,8 @@ SOFTWARE.
 """
 import pathlib
 import pytest
-
 from wmul_file_manager import AnnualArchiver
-
+from wmul_test_utils import make_namedtuple
 
 def test_compare_start_and_end_folders_by_names(mocker):
     mock_folder_comparer_run_script = mocker.patch("wmul_file_manager.FolderComparer.run_script")
@@ -92,56 +91,65 @@ def setup_run_script(mocker):
         source_directories=mock_source_paths,
         destination_directory=mock_destination_path
     )
-    mock_convert_folder_to_mp3_arguments = "mock_convert_folder_to_mp3_arguments"
+
+    mock_archive_list_of_folders = mocker.Mock()
+    mock_compress_media_in_folder = mocker.Mock(archive_list_of_folders=mock_archive_list_of_folders)
     mock_name_comparer_output_file = "mock_name_comparer_output_file"
 
     mock_delete_junk_files_run_script = mocker.patch("wmul_file_manager.DeleteJunkFiles.run_script")
     mock_equivalent_file_finder_run_script = mocker.patch("wmul_file_manager.EquivalentFileFinder.run_script")
     mock_bulk_copier_run_script = mocker.patch("wmul_file_manager.BulkCopier.run_script")
-    mock_convert_folder_to_mp3_run_script = mocker.patch("wmul_file_manager.ConvertFolderToMP3.run_script")
     mock_compare_start_and_end = mocker.patch("wmul_file_manager.AnnualArchiver.compare_start_and_end_folders_by_names")
 
     AnnualArchiver.run_script(mock_delete_junk_files_arguments, mock_equivalent_file_finder_arguments,
-                              mock_bulk_copier_arguments, mock_convert_folder_to_mp3_arguments,
+                              mock_bulk_copier_arguments, mock_compress_media_in_folder,
                               mock_name_comparer_output_file)
 
-    yield mock_delete_junk_files_arguments, mock_delete_junk_files_run_script, mock_equivalent_suffixes_list, \
-          mock_equivalent_file_finder_arguments, mock_equivalent_file_finder_run_script, mock_source_paths, \
-          mock_destination_path, mock_bulk_copier_arguments, mock_bulk_copier_run_script, \
-          mock_convert_folder_to_mp3_arguments, mock_convert_folder_to_mp3_run_script, \
-          mock_name_comparer_output_file, mock_compare_start_and_end
-
+    return make_namedtuple(
+        "setup_run_script",
+        mock_delete_junk_files_arguments=mock_delete_junk_files_arguments,
+        mock_delete_junk_files_run_script=mock_delete_junk_files_run_script,
+        mock_equivalent_suffixes_list=mock_equivalent_suffixes_list,
+        mock_equivalent_file_finder_arguments=mock_equivalent_file_finder_arguments,
+        mock_equivalent_file_finder_run_script=mock_equivalent_file_finder_run_script,
+        mock_source_paths=mock_source_paths,
+        mock_destination_path=mock_destination_path,
+        mock_bulk_copier_arguments=mock_bulk_copier_arguments,
+        mock_bulk_copier_run_script=mock_bulk_copier_run_script,
+        mock_archive_list_of_folders=mock_archive_list_of_folders,
+        mock_compress_media_in_folder=mock_compress_media_in_folder,
+        mock_name_comparer_output_file=mock_name_comparer_output_file,
+        mock_compare_start_and_end=mock_compare_start_and_end
+    )
 
 def test_run_script_delete_junk_files_called_correctly(setup_run_script):
-    mock_delete_junk_files_arguments, mock_delete_junk_files_run_script, _, _, _, _, _, _, _, _, _, _, \
-        _ = setup_run_script
+    mock_delete_junk_files_arguments = setup_run_script.mock_delete_junk_files_arguments
+    mock_delete_junk_files_run_script = setup_run_script.mock_delete_junk_files_run_script
 
     mock_delete_junk_files_run_script.assert_called_once_with(mock_delete_junk_files_arguments)
 
-
 def test_run_script_equivalent_file_finder_called_correctly(setup_run_script):
-    _, _, _, mock_equivalent_file_finder_arguments, mock_equivalent_file_finder_run_script, _, _, _, _, _, _, _, \
-        _ = setup_run_script
+    mock_equivalent_file_finder_arguments = setup_run_script.mock_equivalent_file_finder_arguments
+    mock_equivalent_file_finder_run_script = setup_run_script.mock_equivalent_file_finder_run_script
 
     mock_equivalent_file_finder_run_script.assert_called_once_with(mock_equivalent_file_finder_arguments)
 
-
 def test_run_script_bulk_copier_called_correctly(setup_run_script):
-    _, _, _, _, _, _, _, mock_bulk_copier_arguments, mock_bulk_copier_run_script, _, _, _, _ = setup_run_script
+    mock_bulk_copier_arguments = setup_run_script.mock_bulk_copier_arguments
+    mock_bulk_copier_run_script = setup_run_script.mock_bulk_copier_run_script
 
     mock_bulk_copier_run_script.assert_called_once_with(mock_bulk_copier_arguments)
 
-
-def test_run_script_convert_folder_to_mp3_called_correctly(setup_run_script):
-    _, _, _, _, _, _, _, _, _, mock_convert_folder_to_mp3_arguments, mock_convert_folder_to_mp3_run_script, _, \
-        _ = setup_run_script
-
-    mock_convert_folder_to_mp3_run_script.assert_called_once_with(mock_convert_folder_to_mp3_arguments)
-
+def test_run_script_compress_media_in_folder_called_correctly(setup_run_script):
+    mock_archive_list_of_folders = setup_run_script.mock_archive_list_of_folders
+    mock_archive_list_of_folders.assert_called_once_with()
 
 def test_run_script_compare_start_and_end_called_correctly(setup_run_script):
-    _, _, mock_equivalent_suffixes_list, _, _, mock_source_paths, mock_destination_path, _, _, _, _, \
-        mock_name_comparer_output_file, mock_compare_start_and_end = setup_run_script
+    mock_equivalent_suffixes_list = setup_run_script.mock_equivalent_suffixes_list
+    mock_source_paths = setup_run_script.mock_source_paths
+    mock_destination_path = setup_run_script.mock_destination_path
+    mock_name_comparer_output_file = setup_run_script.mock_name_comparer_output_file
+    mock_compare_start_and_end = setup_run_script.mock_compare_start_and_end
 
     mock_compare_start_and_end.assert_called_once_with(
         mock_source_paths,

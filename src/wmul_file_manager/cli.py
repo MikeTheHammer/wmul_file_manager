@@ -67,11 +67,8 @@ import datetime
 from pathlib import Path
 from wmul_file_manager.BulkCopier import BulkCopierArguments
 from wmul_file_manager.BulkCopier import run_script as run_bulk_copier
-from wmul_file_manager.CompressMediaInFolder import AudioCompressor, VideoCompressor, CompressMediaInFolder
-from wmul_file_manager.ConvertFolderToMP3 import ConvertFolderToMP3Arguments
-from wmul_file_manager.ConvertFolderToMP3 import run_script as run_convert_folder_to_mp3
-from wmul_file_manager.ConvertFolderToMP4 import ConvertFolderToMP4Arguments
-from wmul_file_manager.ConvertFolderToMP4 import run_script as run_convert_folder_to_mp4
+from wmul_file_manager.CompressMediaInFolder import AudioCompressor, VideoCompressor, NullCompressor, \
+    CompressMediaInFolder
 from wmul_file_manager.DeleteJunkFiles import DeleteJunkFilesArguments
 from wmul_file_manager.DeleteJunkFiles import run_script as run_delete_junk_files
 from wmul_file_manager.EquivalentFileFinder import EquivalentFileFinderArguments
@@ -197,6 +194,8 @@ def bulk_copy(sources, destination, exclude_ext, ignore_folder, force_copy, dele
 @click.option("--audio_file_audio_bitrate", type=int, default=160, 
               help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
 @click.option("--audio_destination_suffix", type=str, default=".aac", help="The suffix to append to audio files after compression.")
+@click.option("--ffprobe_executable", type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+              help="The path to the ffprobe executable.")
 @click.option('--video_source_suffixes', type=str, default=".mov",
               help="A space-separated list of the suffixes of the video files to be compressed. (E.G. '.mov .mpeg'. Must include the dot ('.')")
 @click.option("--video_file_audio_codec", type=str, default="aac", help="What audio codec to use.")
@@ -212,14 +211,18 @@ def bulk_copy(sources, destination, exclude_ext, ignore_folder, force_copy, dele
 @click.option('--separate_folder', is_flag=True,
               help="Use a separate folder for the compressed files. Will be the same name as the source folder with "
                    "_cmp appended.")
+@click.option('--yesterday', is_flag=True,
+              help="Archive yesterday's files. Will search for a folder inside the first source folder that meets the "
+                   "format YYYY-MM-DD for yesterday. E.G. If today is May 07, 2018, then it will look for a folder "
+                   "named 2018-05-06.")
 def compress_media_in_folder(sources, executable, audio_source_suffixes, audio_file_audio_codec, 
-                             audio_file_audio_bitrate, audio_destination_suffix, video_source_suffixes, 
+                             audio_file_audio_bitrate, audio_destination_suffix, ffprobe_executable, video_source_suffixes, 
                              video_file_audio_codec, video_file_audio_bitrate, video_codec, video_bitrate, 
-                             video_destination_suffix, threads, delete, separate_folder):
+                             video_destination_suffix, threads, delete, separate_folder, yesterday):
     """
-    Script to archive a directory or set of directories into mp4 format. 
+    Script to compress all the media in a folder.
     
-    SOURCES The path(s) containing the files to be archived. All subfolders will also be converted.
+    SOURCES The path(s) containing the files to be compressed. All subfolders will also be compressed.
 
     EXECUTABLE The path to the ffmpeg executable. It does not have to actually be ffmpeg, but does need to use the
     same command-line API as ffmpeg.
@@ -246,7 +249,8 @@ def compress_media_in_folder(sources, executable, audio_source_suffixes, audio_f
         audio_bitrate=video_file_audio_bitrate,
         destination_suffix=video_destination_suffix,
         ffmpeg_threads=threads,
-        ffmpeg_executable=executable
+        ffmpeg_executable=executable,
+        ffprobe_executable=ffprobe_executable
     )
     
     source_folders = [Path(source_path) for source_path in sources]
@@ -259,102 +263,137 @@ def compress_media_in_folder(sources, executable, audio_source_suffixes, audio_f
         delete_files_flag=delete
     )
 
-    cmif.archive_list_of_folders()
+    if yesterday:
+        cmif.archive_yesterdays_folders()
+    else:
+        cmif.archive_list_of_folders()
 
 
 @wmul_file_manager_cli.command()
 @click.argument('sources', type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True), nargs=-1)
 @click.argument('executable', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True), nargs=1)
-@click.option('--suffix', type=str, default=".wav",
-              help="The suffix of the files to be converted (E.G. '.wav'. Must include the dot ('.')")
-@click.option('--bitrate', type=int, default=96, help="What mp3 bitrate to use.")
-@click.option('--maxthreads', type=int, default=1,
-              help="Maximum number of conversion threads to use. Should be <= the number of CPU cores. ")
-@click.option('--delete', is_flag=True, help="Delete the .wav files after conversion.")
+@click.option('--audio_source_suffixes', type=str, default=".wav",
+              help="A space-separated list of the suffixes of the audio files to be compressed. (E.G. '.wav .foo'. Must include the dot ('.')")
+@click.option("--audio_file_audio_codec", type=str, default="aac", help="What audio codec to use.")
+@click.option("--audio_file_audio_bitrate", type=int, default=160, 
+              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
+@click.option("--audio_destination_suffix", type=str, default=".aac", help="The suffix to append to audio files after compression.")
+@click.option('--threads', type=int, default=3,
+              help="How many threads ffmpeg can use Should be <= the number of CPU cores.")
+@click.option('--delete', is_flag=True, help="Delete the original media files after compression.")
 @click.option('--separate_folder', is_flag=True,
-              help="Use a separate folder for the converted files. Will be the same name as the source folder with "
-                   "_mp3 appended.")
+              help="Use a separate folder for the compressed files. Will be the same name as the source folder with "
+                   "_cmp appended.")
 @click.option('--yesterday', is_flag=True,
               help="Archive yesterday's files. Will search for a folder inside the first source folder that meets the "
                    "format YYYY-MM-DD for yesterday. E.G. If today is May 07, 2018, then it will look for a folder "
                    "named 2018-05-06.")
-def convert_folder_to_mp3(sources, executable, suffix, bitrate, maxthreads, delete, separate_folder,
-                          yesterday):
+def compress_audio_in_folder(sources, executable, audio_source_suffixes, audio_file_audio_codec, 
+                             audio_file_audio_bitrate, audio_destination_suffix, threads, delete, separate_folder, 
+                             yesterday):
     """
-    Script to archive a directory or set of directories into mp3 format. This script is multi-threaded and uses at
-        least two threads. One thread issues file copy commands to the os, the other calls the mp3 converter.
-        Any extra threads call additional mp3 converters.
-
-    SOURCES The path(s) containing the files to be archived. All subfolders will also be converted.
-
-    TEMP_FOLDER The path to the temp folder to which files will be copied.
-
-    EXECUTABLE The path to the ffmpeg executable. It does not have to actually be ffmpeg, but does need to use the
-    same command-line API as ffmpeg.
-    """
-    _logger.debug("In cli.convert_folder_to_mp3")
-    _logger.info(f"with args: {locals()}")
-
-    source_folders_arg = [Path(source_path) for source_path in sources]
-
-    arguments = ConvertFolderToMP3Arguments(
-        source_paths=source_folders_arg,
-        desired_suffix=suffix,
-        bitrate=bitrate,
-        ffmpeg_executable=executable,
-        separate_folder_flag=separate_folder,
-        max_conversion_threads=maxthreads,
-        delete_files_flag=delete,
-        yesterday_flag=yesterday
-    )
-
-    run_convert_folder_to_mp3(arguments)
-
-@wmul_file_manager_cli.command()
-@click.argument('sources', type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True), nargs=-1)
-@click.argument('executable', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True), nargs=1)
-@click.option('--suffix', type=str, default=".mov",
-              help="The suffix of the files to be converted (E.G. '.mov'. Must include the dot ('.')")
-@click.option("--audio_codec", type=str, default="aac", help="What audio codec to use.")
-@click.option("--audio_bitrate", type=int, default=160, 
-              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
-@click.option("--video_codec", type=str, default="h264", help="What video codec to use.")
-@click.option("--video_bitrate", type=int, default=10, 
-              help="What video bitrate to use, in megabits. E.G. 10 is 10 megabits.")
-@click.option('--threads', type=int, default=3,
-              help="How many threads ffmpeg can use Should be <= the number of CPU cores. ")
-@click.option('--delete', is_flag=True, help="Delete the .mov files after conversion.")
-@click.option('--separate_folder', is_flag=True,
-              help="Use a separate folder for the converted files. Will be the same name as the source folder with "
-                   "_mp4 appended.")
-def convert_folder_to_mp4(sources, executable, suffix, audio_codec, audio_bitrate, video_codec, video_bitrate, 
-                          threads, delete, separate_folder):
-    """
-    Script to archive a directory or set of directories into mp4 format. 
+    Script to compress all the audio in a folder.
     
-    SOURCES The path(s) containing the files to be archived. All subfolders will also be converted.
+    SOURCES The path(s) containing the files to be compressed. All subfolders will also be compressed.
 
     EXECUTABLE The path to the ffmpeg executable. It does not have to actually be ffmpeg, but does need to use the
     same command-line API as ffmpeg.
     """
     _logger.info(f"With args: {locals()}")
 
-    source_folders_arg = [Path(source_path) for source_path in sources]
+    audio_source_suffixes = audio_source_suffixes.split()
 
-    arguments = ConvertFolderToMP4Arguments(
-        source_paths=source_folders_arg,
-        desired_suffix=suffix,
-        audio_codec=audio_codec,
-        audio_bitrate=audio_bitrate,
-        video_codec=video_codec,
-        video_bitrate=video_bitrate,
-        threads=threads,
-        ffmpeg_executable=executable,
+    audio_compressor = AudioCompressor(
+        suffixes=audio_source_suffixes,
+        audio_codec=audio_file_audio_codec,
+        audio_bitrate=audio_file_audio_bitrate,
+        destination_suffix=audio_destination_suffix,
+        ffmpeg_threads=threads,
+        ffmpeg_executable=executable
+    )
+    
+    source_folders = [Path(source_path) for source_path in sources]
+
+    cmif = CompressMediaInFolder(
+        source_paths=source_folders,
+        audio_compressor=audio_compressor,
+        video_compressor=NullCompressor(),
         separate_folder_flag=separate_folder,
         delete_files_flag=delete
     )
 
-    run_convert_folder_to_mp4(arguments)
+    if yesterday:
+        cmif.archive_yesterdays_folders()
+    else:
+        cmif.archive_list_of_folders()
+
+
+@wmul_file_manager_cli.command()
+@click.argument('sources', type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True), nargs=-1)
+@click.argument('executable', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True), nargs=1)
+@click.option("--ffprobe_executable", type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+              help="The path to the ffprobe executable.")
+@click.option('--video_source_suffixes', type=str, default=".mov",
+              help="A space-separated list of the suffixes of the video files to be compressed. (E.G. '.mov .mpeg'. Must include the dot ('.')")
+@click.option("--video_file_audio_codec", type=str, default="aac", help="What audio codec to use.")
+@click.option("--video_file_audio_bitrate", type=int, default=160, 
+              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
+@click.option("--video_codec", type=str, default="h264", help="What video codec to use.")
+@click.option("--video_bitrate", type=int, default=10, 
+              help="What video bitrate to use, in megabits. E.G. 10 is 10 megabits.")
+@click.option("--video_destination_suffix", type=str, default=".mp4", help="The suffix to append to video files after compression.")
+@click.option('--threads', type=int, default=3,
+              help="How many threads ffmpeg can use Should be <= the number of CPU cores.")
+@click.option('--delete', is_flag=True, help="Delete the original media files after compression.")
+@click.option('--separate_folder', is_flag=True,
+              help="Use a separate folder for the compressed files. Will be the same name as the source folder with "
+                   "_cmp appended.")
+@click.option('--yesterday', is_flag=True,
+              help="Archive yesterday's files. Will search for a folder inside the first source folder that meets the "
+                   "format YYYY-MM-DD for yesterday. E.G. If today is May 07, 2018, then it will look for a folder "
+                   "named 2018-05-06.")
+def compress_video_in_folder(sources, executable, ffprobe_executable, video_source_suffixes, video_file_audio_codec, 
+                             video_file_audio_bitrate, video_codec, video_bitrate, video_destination_suffix, threads, 
+                             delete, separate_folder, yesterday):
+    """
+    Script to compress all the videos in a folder.
+    
+    SOURCES The path(s) containing the files to be compressed. All subfolders will also be compressed.
+
+    EXECUTABLE The path to the ffmpeg executable. It does not have to actually be ffmpeg, but does need to use the
+    same command-line API as ffmpeg.
+    """
+    _logger.info(f"With args: {locals()}")
+
+    video_source_suffixes = video_source_suffixes.split()
+
+    video_compressor = VideoCompressor(
+        suffixes=video_source_suffixes,
+        video_codec=video_codec,
+        video_bitrate=video_bitrate,
+        audio_codec=video_file_audio_codec,
+        audio_bitrate=video_file_audio_bitrate,
+        destination_suffix=video_destination_suffix,
+        ffmpeg_threads=threads,
+        ffmpeg_executable=executable,
+        ffprobe_executable=ffprobe_executable
+    )
+    
+    source_folders = [Path(source_path) for source_path in sources]
+
+    cmif = CompressMediaInFolder(
+        source_paths=source_folders,
+        audio_compressor=NullCompressor(),
+        video_compressor=video_compressor,
+        separate_folder_flag=separate_folder,
+        delete_files_flag=delete
+    )
+
+    if yesterday:
+        cmif.archive_yesterdays_folders()
+    else:
+        cmif.archive_list_of_folders()
+
 
 @wmul_file_manager_cli.command()
 @click.argument('sources', type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True), nargs=-1)
@@ -513,21 +552,37 @@ def compare_folders(first, second, ignore, equivalent, name_only, name_size_only
                  help='"A space-separated list of the names of the junk files. Enclose in quotation marks. '
                       'E.G. "Thumbs.db .DS_Store"')
 @click.option('--equiv_rename', is_flag=True, help="Rename the files when found.")
-@click.option('--mp3_executable', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True), nargs=1,
-              help="Path to ffmpeg executable.", required=True)
-@click.option('--mp3_suffix', type=str, default=".wav",
-              help="The suffix of the files to be converted (E.G. '.wav'. Must include the dot ('.')")
-@click.option('--mp3_bitrate', type=int, default=96, help="What mp3 bitrate to use.")
-@click.option('--mp3_maxthreads', type=int, default=1,
-              help="Maximum number of conversion threads to use. Should be <= the number of CPU cores. ")
+@click.option('--audio_source_suffixes', type=str, default=".wav",
+              help="A space-separated list of the suffixes of the audio files to be compressed. (E.G. '.wav .foo'. Must include the dot ('.')")
+@click.option("--audio_file_audio_codec", type=str, default="aac", help="What audio codec to use.")
+@click.option("--audio_file_audio_bitrate", type=int, default=160, 
+              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
+@click.option("--audio_destination_suffix", type=str, default=".aac", help="The suffix to append to audio files after compression.")
+@click.option("--ffprobe_executable", type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+              help="The path to the ffprobe executable.")
+@click.option('--video_source_suffixes', type=str, default=".mov",
+              help="A space-separated list of the suffixes of the video files to be compressed. (E.G. '.mov .mpeg'. Must include the dot ('.')")
+@click.option("--video_file_audio_codec", type=str, default="aac", help="What audio codec to use.")
+@click.option("--video_file_audio_bitrate", type=int, default=160, 
+              help="What audio bitrate to use, in kilobits. E.G. 160 is 160 kilobits.")
+@click.option("--video_codec", type=str, default="h264", help="What video codec to use.")
+@click.option("--video_bitrate", type=int, default=10, 
+              help="What video bitrate to use, in megabits. E.G. 10 is 10 megabits.")
+@click.option("--video_destination_suffix", type=str, default=".mp4", help="The suffix to append to video files after compression.")
+@click.option('--ffmpeg_executable', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True), 
+              nargs=1, help="Path to ffmpeg executable.", required=True)
+@click.option('--ffmpeg_threads', type=int, default=3,
+              help="How many threads ffmpeg can use Should be <= the number of CPU cores.")
 @click.option('--copy_exclude_ext', type=str, multiple=True, help="Extension to exclude from copying.")
 @click.option('--output', type=click.Path(file_okay=True, dir_okay=False, writable=True), default=None,
               help="The path to write the results text to. Leave blank to print to standard out.")
-def annual_archive(sources, destination, equivalent, junk_suffix, junk_name, equiv_rename, mp3_executable,
-                   mp3_suffix, mp3_bitrate, mp3_maxthreads, copy_exclude_ext, output):
+def annual_archive(sources, destination, equivalent, junk_suffix, junk_name, equiv_rename, audio_source_suffixes, 
+                   audio_file_audio_codec, audio_file_audio_bitrate, audio_destination_suffix, ffprobe_executable,
+                   video_source_suffixes, video_file_audio_codec, video_file_audio_bitrate, video_codec, video_bitrate, 
+                   video_destination_suffix, ffmpeg_executable, ffmpeg_threads, copy_exclude_ext, output):
     """
     For yearly archiving. Deletes the junk files, renames equivalent files, copies everything to a separate directory,
-    converts the wav files to mp3s, and does a final comparison to check for missing files.
+    compresses the audio and video files, and does a final comparison to check for missing files.
 
     SOURCES The path(s) to the folder(s) to copy.
 
@@ -576,19 +631,47 @@ def annual_archive(sources, destination, equivalent, junk_suffix, junk_name, equ
         delete_old_files_flag=False
     )
 
-    convert_folder_to_mp3_arguments = ConvertFolderToMP3Arguments(
-        source_paths=[destination],
-        desired_suffix=mp3_suffix,
-        bitrate=mp3_bitrate,
-        ffmpeg_executable=mp3_executable,
-        separate_folder_flag=False,
-        max_conversion_threads=mp3_maxthreads,
-        delete_files_flag=True,
-        yesterday_flag=False
+    audio_source_suffixes = audio_source_suffixes.split()
+    video_source_suffixes = video_source_suffixes.split()
+
+    audio_compressor = AudioCompressor(
+        suffixes=audio_source_suffixes,
+        audio_codec=audio_file_audio_codec,
+        audio_bitrate=audio_file_audio_bitrate,
+        destination_suffix=audio_destination_suffix,
+        ffmpeg_threads=ffmpeg_threads,
+        ffmpeg_executable=ffmpeg_executable
     )
 
-    run_annual_archiver(delete_junk_files_arguments, equivalent_file_finder_arguments, bulk_copier_arguments,
-                        convert_folder_to_mp3_arguments, output)
+    video_compressor = VideoCompressor(
+        suffixes=video_source_suffixes,
+        video_codec=video_codec,
+        video_bitrate=video_bitrate,
+        audio_codec=video_file_audio_codec,
+        audio_bitrate=video_file_audio_bitrate,
+        destination_suffix=video_destination_suffix,
+        ffmpeg_threads=ffmpeg_threads,
+        ffmpeg_executable=ffmpeg_executable,
+        ffprobe_executable=ffprobe_executable
+    )
+    
+    source_folders = [Path(source_path) for source_path in sources]
+
+    cmif = CompressMediaInFolder(
+        source_paths=source_folders,
+        audio_compressor=audio_compressor,
+        video_compressor=video_compressor,
+        separate_folder_flag=True,
+        delete_files_flag=True
+    )
+
+    run_annual_archiver(
+        delete_junk_files_arguments=delete_junk_files_arguments, 
+        equivalent_file_finder_arguments=equivalent_file_finder_arguments, 
+        bulk_copier_arguments=bulk_copier_arguments,
+        compress_media_in_folder=cmif, 
+        name_comparer_output_file_name=output
+    )
 
 
 @wmul_file_manager_cli.command()

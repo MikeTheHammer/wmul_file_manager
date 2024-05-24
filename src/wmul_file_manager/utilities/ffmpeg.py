@@ -139,3 +139,21 @@ def convert_video(input_file_path, output_file_path, video_codec, video_bitrate,
     )
 
     return subprocess_result.returncode
+
+def determine_video_bitrate(input_file_path, ffprope_executable_path):
+    subprocess_args = [
+        str(ffprope_executable_path),
+        '-v', 'quiet',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=bit_rate',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        str(input_file_path)
+    ]
+
+    subprocess_result = subprocess.run(
+        subprocess_args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+
+    return int(subprocess_result.stdout)

@@ -100,7 +100,7 @@ SOFTWARE.
 """
 import wmul_logger
 
-from wmul_file_manager import BulkCopier, ConvertFolderToMP3, DeleteJunkFiles, EquivalentFileFinder, FolderComparer
+from wmul_file_manager import BulkCopier, DeleteJunkFiles, EquivalentFileFinder, FolderComparer
 
 _logger = wmul_logger.get_logger()
 
@@ -124,12 +124,12 @@ def compare_start_and_end_folders_by_names(source_directories, destination_direc
 
 
 def run_script(delete_junk_files_arguments, equivalent_file_finder_arguments, bulk_copier_arguments,
-               convert_folder_to_mp3_arguments, name_comparer_output_file_name):
+               compress_media_in_folder, name_comparer_output_file_name):
     _logger.debug(f"Starting run_script with {locals()}")
     DeleteJunkFiles.run_script(delete_junk_files_arguments)
     EquivalentFileFinder.run_script(equivalent_file_finder_arguments)
     BulkCopier.run_script(bulk_copier_arguments)
-    ConvertFolderToMP3.run_script(convert_folder_to_mp3_arguments)
+    compress_media_in_folder.archive_list_of_folders()
     compare_start_and_end_folders_by_names(
         bulk_copier_arguments.source_directories,
         bulk_copier_arguments.destination_directory,

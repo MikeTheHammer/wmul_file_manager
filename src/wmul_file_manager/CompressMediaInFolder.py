@@ -34,6 +34,7 @@ SOFTWARE.
 """
 from abc import ABC
 from dataclasses import dataclass
+from datetime import date, timedelta
 from enum import Enum, auto
 from functools import partial
 from pathlib import Path
@@ -83,7 +84,7 @@ class _CompressorFileInformation:
         file_parent.mkdir(parents=True, exist_ok=True)
 
     def compress(self, call_ffmpeg: callable) -> None:
-        logger.debug(f"Compressing {self.original_file_name}")
+        logger.info(f"Compressing {self.original_file_name}")
         if not self.file_info_type == _CompressorFileInformationType.UnCompressed_Media_File:
             raise RuntimeError(f"Attempting to compress a file that is not a UnCompressed_Media_File. {self.original_file_name}")
         self._create_all_needed_parents()
@@ -115,6 +116,12 @@ class _CompressorFileInformation:
         else:
             logger.warning(f"Attempted to delete a file that has not been compressed. {object_cleaner(self)}")
     
+    def destination_exists(self):
+        if not self.file_info_type == _CompressorFileInformationType.UnCompressed_Media_File:
+            return False
+        else:
+            return self.destination_path.exists()
+
     @property
     def suffix(self):
         return self.original_file_name.suffix
@@ -131,14 +138,21 @@ class MediaCompressor(ABC):
     list_of_files_for_compression: list[_CompressorFileInformation]
     list_of_files_for_deletion: list[_CompressorFileInformation]
     source_suffixes: list[str]
-    destination_suffix: str
+    destination_suffix: str        
 
     def consider_file_for_compression(self, file_under_consideration: _CompressorFileInformation) -> bool:
         if file_under_consideration.suffix.casefold() in self.source_suffixes:
-            logger.debug("File is a desired type. Adding file to conversion queue.")
             file_under_consideration.set_as_media_file(final_suffix=self.destination_suffix)
-            self.list_of_files_for_compression.append(file_under_consideration)
-            return True
+            if file_under_consideration.destination_exists():
+                logger.info(f"This file seems to have already been converted. Skipping. "
+                            f"{file_under_consideration.source_path}")
+                return True
+            if self._other_factors_allow_compression(file_under_consideration):
+                logger.debug("File is a desired type. Adding file to conversion queue.")
+                self.list_of_files_for_compression.append(file_under_consideration)
+                return True
+            else:
+                return True
         else:
             logger.debug(f"File is not a desired type. {file_under_consideration.suffix}\t{self.source_suffixes}")
             return False
@@ -155,11 +169,14 @@ class MediaCompressor(ABC):
         for file_item in self.list_of_files_for_deletion:
             file_item.delete()
 
-
+    def _other_factors_allow_compression(self, file_under_consideration):
+        return True
+    
+    
 class VideoCompressor(MediaCompressor):
 
     def __init__(self, suffixes: list[str], video_codec: str, video_bitrate: int, audio_codec: str, audio_bitrate: int,
-                 destination_suffix: str, ffmpeg_threads: int, ffmpeg_executable: Path):
+                 destination_suffix: str, ffmpeg_threads: int, ffmpeg_executable: Path, ffprobe_executable: Path):
         self.list_of_files_for_compression = []
         self.list_of_files_for_deletion = []
         self.source_suffixes = [suffix.casefold() for suffix in suffixes]
@@ -173,9 +190,35 @@ class VideoCompressor(MediaCompressor):
             threads=ffmpeg_threads,
             executable_path=ffmpeg_executable
         )
+        self.ffprobe_executable = ffprobe_executable
+        self.set_bitrate_floor(video_bitrate)
     
     def __str__(self) -> str:
         return f"VideoCompressor: {self.source_suffixes=}"
+
+    def set_bitrate_floor(self, video_bitrate: str):
+        """This sets the video bitrate floor, below which a video file will not be re-encoded. 
+        The floor is 120% of video_bitrate. 
+
+        E.G. If this function is called with '10' (10_000_000), the floor will be set at 12_000_000. 
+        Any files that are already 12_000_000 or lower will not be re-encoded.
+
+        Args:
+            video_bitrate (str): The video bitrate, below which a file will not be re-encoded.
+        """
+        video_bitrate = int(video_bitrate) * 1_000_000
+        self.bitrate_floor = int(video_bitrate * 1.2)
+
+    def _other_factors_allow_compression(self, file_under_consideration):
+        vbr = ffmpeg.determine_video_bitrate(file_under_consideration.original_file_name, self.ffprobe_executable)
+        logger.debug(f"Video Bitrate: {vbr}")
+        higher_bitrate = vbr > self.bitrate_floor
+        if higher_bitrate:
+            logger.debug("Video bitrate is above the floor, compression allowed.")
+            return True
+        else:
+            logger.debug("Video bitrate is below the floor, skipping.")
+            return False
 
 
 class AudioCompressor(MediaCompressor):
@@ -216,6 +259,15 @@ class CompressMediaInFolder:
     video_compressor: VideoCompressor
     separate_folder_flag: bool = False
     delete_files_flag: bool = False
+
+    def archive_yesterdays_folders(self) -> None:
+        logger.debug(f"With {locals()}")
+        yesterday = date.today() - timedelta(days=1)
+        yesterday_folder_name = "{yr:04d}-{mo:02d}-{da:02d}".format(yr=yesterday.year, mo=yesterday.month,
+                                                                    da=yesterday.day)
+        for source_path in self.source_paths:
+            yesterday_raw_files_folder = source_path / yesterday_folder_name
+            self._check_and_archive_folder(yesterday_raw_files_folder)
 
     def archive_list_of_folders(self) -> None:
         logger.debug(f"With {locals()}")

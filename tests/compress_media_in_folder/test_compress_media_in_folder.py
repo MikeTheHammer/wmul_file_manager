@@ -27,6 +27,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import datetime
 import pytest
 from pathlib import Path
 from wmul_file_manager.CompressMediaInFolder import CompressMediaInFolder, _CompressorFileInformation
@@ -112,6 +113,52 @@ def test_archive_list_of_folders(setup_compress_media_in_folder, mocker):
         mocker.call(source_path_1),
         mocker.call(source_path_2),
         mocker.call(source_path_3)
+    ]
+
+    assert_has_only_these_calls(
+        mock=mock_check_and_archive_folder,
+        calls=expected_calls
+    )
+
+def test_archive_yesterdays_folders(setup_compress_media_in_folder, mocker):
+    params = setup_compress_media_in_folder.params
+    source_path_1 = setup_compress_media_in_folder.source_path_1
+    source_path_2 = setup_compress_media_in_folder.source_path_2
+    source_path_3 = setup_compress_media_in_folder.source_path_3
+    source_paths = setup_compress_media_in_folder.source_paths
+    audio_compressor = setup_compress_media_in_folder.audio_compressor
+    video_compressor = setup_compress_media_in_folder.video_compressor
+
+    mock_today = mocker.Mock(return_value=datetime.date(year=2018, month=5, day=4))
+    mock_date = mocker.Mock(today=mock_today)
+    mocker.patch("wmul_file_manager.CompressMediaInFolder.date", mock_date)
+
+    mock_check_and_archive_folder = mocker.Mock()
+    mocker.patch(
+        "wmul_file_manager.CompressMediaInFolder.CompressMediaInFolder._check_and_archive_folder",
+        mock_check_and_archive_folder
+    )
+
+    cmif = CompressMediaInFolder(
+        source_paths=source_paths,
+        audio_compressor=audio_compressor,
+        video_compressor=video_compressor,
+        separate_folder_flag=params.separate_folder,
+        delete_files_flag=params.delete_files
+    )
+
+    result = cmif.archive_yesterdays_folders()
+
+    assert result is None
+
+    source_path_1_yesterday = source_path_1 / "2018-05-03"
+    source_path_2_yesterday = source_path_2 / "2018-05-03"
+    source_path_3_yesterday = source_path_3 / "2018-05-03"
+
+    expected_calls = [
+        mocker.call(source_path_1_yesterday),
+        mocker.call(source_path_2_yesterday),
+        mocker.call(source_path_3_yesterday)
     ]
 
     assert_has_only_these_calls(

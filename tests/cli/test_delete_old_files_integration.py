@@ -28,17 +28,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 from click.testing import CliRunner
-from collections import namedtuple
 from wmul_file_manager import cli
-from wmul_file_manager.DeleteOldFiles import DeleteOldFilesArguments
 
 import os
-import datetime
 import pathlib
-import pytest
-import random
 
-def test_delete_old_files_integration(fs, mocker):
+def test_delete_old_files_integration(fs):
     root_folder = pathlib.Path("/temp")
 
     file_1 = root_folder / "file_1.txt"
