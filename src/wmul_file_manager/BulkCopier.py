@@ -114,7 +114,7 @@ _logger = wmul_logger.get_logger()
 
 
 def _synchronize_directories(source_path, destination_path, exclude_exts, ignore_folders, force_copy):
-    _logger.debug(f"In synchronize_paths with {locals()}")
+    _logger.info(f"With {locals()}")
     destination_path.mkdir(parents=True, exist_ok=True)
     for source_item in source_path.iterdir():
         _logger.debug(f"In synchronize_paths, working on: {object_cleaner(source_item)}")
@@ -203,9 +203,8 @@ BulkCopierArguments = namedtuple(
 
 
 def run_script(arguments):
-    _logger.debug(f"Starting run_script with {arguments}")
+    _logger.info(f"Starting run_script with {arguments}")
     for this_source_dir in arguments.source_directories:
-        _logger.info(f"In run_script.")
         _logger.debug(f"Working on {this_source_dir}")
         this_dest_dir = arguments.destination_directory / this_source_dir.name
         _synchronize_directories(this_source_dir, this_dest_dir, arguments.exclude_suffixes_list,
