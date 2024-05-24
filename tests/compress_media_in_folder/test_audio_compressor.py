@@ -54,21 +54,20 @@ audio_compressor_construction_params, audi_compressor_construction_ids = generat
 def setup_audio_compressor_construction(request, fs):
     params = request.param
 
-    match params.number_of_suffixes:
-        case NumberOfSuffixes.Zero:
-            suffixes = []
-            expected_suffixes = []
-        case NumberOfSuffixes.One:
-            suffixes = [".wAv"]
-            expected_suffixes = [".wav"]
-        case NumberOfSuffixes.Two:
-            suffixes = [".wAv", ".mp3"]
-            expected_suffixes = [".wav", ".mp3"]
-        case NumberOfSuffixes.Ten | _:
-            suffixes = [".wAv", ".mp3", ".Ra", ".aiff", ".foo", 
-                        ".bar", ".baZ", ".AAA", ".bbb", ".ccc"]
-            expected_suffixes = [".wav", ".mp3", ".ra", ".aiff", ".foo", 
-                                 ".bar", ".baz", ".aaa", ".bbb", ".ccc"]
+    if params.number_of_suffixes == NumberOfSuffixes.Zero:
+        suffixes = []
+        expected_suffixes = []
+    elif params.number_of_suffixes == NumberOfSuffixes.One:
+        suffixes = [".wAv"]
+        expected_suffixes = [".wav"]
+    elif params.number_of_suffixes == NumberOfSuffixes.Two:
+        suffixes = [".wAv", ".mp3"]
+        expected_suffixes = [".wav", ".mp3"]
+    else:
+        suffixes = [".wAv", ".mp3", ".Ra", ".aiff", ".foo", 
+                    ".bar", ".baZ", ".AAA", ".bbb", ".ccc"]
+        expected_suffixes = [".wav", ".mp3", ".ra", ".aiff", ".foo", 
+                             ".bar", ".baz", ".aaa", ".bbb", ".ccc"]
         
     audio_codec = "mp3"
     audio_bitrate = 160

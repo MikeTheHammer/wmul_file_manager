@@ -55,21 +55,20 @@ video_compressor_construction_params, video_compressor_construction_ids = genera
 def setup_video_compressor_construction(request, fs):
     params = request.param
 
-    match params.number_of_suffixes:
-        case NumberOfSuffixes.Zero:
-            suffixes = []
-            expected_suffixes = []
-        case NumberOfSuffixes.One:
-            suffixes = [".mOv"]
-            expected_suffixes = [".mov"]
-        case NumberOfSuffixes.Two:
-            suffixes = [".mOv", ".mp4"]
-            expected_suffixes = [".mov", ".mp4"]
-        case NumberOfSuffixes.Ten | _:
-            suffixes = [".mOv", ".mp4", ".mPeg", ".avi", ".foo", 
-                        ".bar", ".baZ", ".AAA", ".bbb", ".ccc"]
-            expected_suffixes = [".mov", ".mp4", ".mpeg", ".avi", ".foo", 
-                                 ".bar", ".baz", ".aaa", ".bbb", ".ccc"]
+    if params.number_of_suffixes == NumberOfSuffixes.Zero:
+        suffixes = []
+        expected_suffixes = []
+    elif params.number_of_suffixes == NumberOfSuffixes.One:
+        suffixes = [".mOv"]
+        expected_suffixes = [".mov"]
+    elif params.number_of_suffixes == NumberOfSuffixes.Two:
+        suffixes = [".mOv", ".mp4"]
+        expected_suffixes = [".mov", ".mp4"]
+    else:
+        suffixes = [".mOv", ".mp4", ".mPeg", ".avi", ".foo", 
+                    ".bar", ".baZ", ".AAA", ".bbb", ".ccc"]
+        expected_suffixes = [".mov", ".mp4", ".mpeg", ".avi", ".foo", 
+                             ".bar", ".baz", ".aaa", ".bbb", ".ccc"]
         
     video_codec = "h264"
     video_bitrate = 10
