@@ -145,7 +145,7 @@ class MediaCompressor(ABC):
             file_under_consideration.set_as_media_file(final_suffix=self.destination_suffix)
             if file_under_consideration.destination_exists():
                 logger.info(f"This file seems to have already been converted. Skipping. "
-                            f"{file_under_consideration.source_path}")
+                            f"{file_under_consideration.original_file_name}")
                 return True
             if self._other_factors_allow_compression(file_under_consideration):
                 logger.debug("File is a desired type. Adding file to conversion queue.")
