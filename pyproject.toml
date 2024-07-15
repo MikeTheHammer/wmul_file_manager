@@ -18,7 +18,7 @@ dynamic = ["version"]
 description = "Various file management scripts for WMUL-FM."
 
 dependencies = [
-  "wmul_logger>=0.5.1",
+  "wmul_logger>=0.6.0",
   "wmul_emailer>=0.6.0",
   "click",
   "networkx",
