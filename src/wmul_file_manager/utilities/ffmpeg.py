@@ -156,4 +156,11 @@ def determine_video_bitrate(input_file_path, ffprope_executable_path):
         stderr=subprocess.STDOUT
     )
 
-    return int(subprocess_result.stdout)
+    stdout = subprocess_result.stdout
+
+    try:
+        bitrate = int(stdout)
+    except ValueError:
+        logger.info(f"ffprobe could not determine the bitrate, setting it to zero. {input_file_path}")
+        bitrate = 0
+    return bitrate
