@@ -112,11 +112,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import shutil
-from pathlib import Path
-from pydantic import BaseModel
-
 import wmul_logger
+from pathlib import Path
 from wmul_file_manager.utilities.FileNamePrinter import object_cleaner
+from wmul_file_manager.ArgumentBase import ArgumentBase
 
 _logger = wmul_logger.get_logger()
 
@@ -197,7 +196,7 @@ def _has_matching_source_file(destination_item, source_path):
     return source_item.exists()
 
 
-class BulkCopierArguments(BaseModel):
+class BulkCopierArguments(ArgumentBase):
     source_directories: list[Path]
     destination_directory: Path
     exclude_suffixes_list: list[str] = []
