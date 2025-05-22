@@ -2,12 +2,14 @@
 @Author = 'Mike Stanley'
 
 ============ Change Log ============
+2025-May-22 = Update copy_folder test after Bulk Copier was converted to Pydantic.
+
 2018-May-15 = Created.
 
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2018 Michael Stanley
+Copyright (c) 2018, 2025 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,19 +38,19 @@ from wmul_file_manager.BulkCopier import BulkCopierArguments
 
 
 @pytest.mark.parametrize('folder_exists', [True, False])
-def test__copy_folder(mocker, folder_exists):
+def test__copy_folder(mocker, fs, folder_exists):
     mock_bulk_copier = mocker.patch("wmul_file_manager.BulkCopier.run_script")
 
-    def exists():
-        return folder_exists
+    source_path = pathlib.Path("C:\\Temp")
+    if folder_exists:
+        fs.create_dir(source_path)
 
-    mock_source_path = mocker.Mock(exists=exists)
-    mock_destination_path = "mock_destination_path"
+    mock_destination_path = pathlib.Path("mock_destination_path")
 
-    CopyYesterdaysSkimmerFiles._copy_folder(mock_source_path, mock_destination_path)
+    CopyYesterdaysSkimmerFiles._copy_folder(source_path, mock_destination_path)
 
     expected_arguments = BulkCopierArguments(
-        source_directories=[mock_source_path],
+        source_directories=[source_path],
         destination_directory=mock_destination_path,
         exclude_suffixes_list=[],
         ignore_directories=[],

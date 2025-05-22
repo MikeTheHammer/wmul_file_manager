@@ -10,6 +10,13 @@ Mainly designed to be run from command-line, but can also be called from other s
 Access from the command-line is through cli.bulk_copy.
 
 ============ Change Log ============
+2025-May-22 = Change the arguments from a namedtuple to a pydantic model. The first step in making this program into
+                something that can run as a service.
+
+2024-May-24 = Update logging.
+
+2024-Jan-28 = Change logging level for directories.
+
 2018-May-25 = Rename members of BulkCopierArguments, and some method-local variables
 
               Rename synchronize_paths to _synchronize_directories.
@@ -84,7 +91,7 @@ Access from the command-line is through cli.bulk_copy.
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2015-2018, 2024 Michael Stanley
+Copyright (c) 2015-2018, 2024-2025 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -105,7 +112,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import shutil
-from collections import namedtuple
+from pathlib import Path
+from pydantic import BaseModel
 
 import wmul_logger
 from wmul_file_manager.utilities.FileNamePrinter import object_cleaner
@@ -189,17 +197,13 @@ def _has_matching_source_file(destination_item, source_path):
     return source_item.exists()
 
 
-BulkCopierArguments = namedtuple(
-    "BulkCopierArguments",
-    [
-        "source_directories",
-        "destination_directory",
-        "exclude_suffixes_list",
-        "ignore_directories",
-        "force_copy_flag",
-        "delete_old_files_flag"
-    ]
-)
+class BulkCopierArguments(BaseModel):
+    source_directories: list[Path]
+    destination_directory: Path
+    exclude_suffixes_list: list[str] = []
+    ignore_directories: list[Path] = []
+    force_copy_flag: bool = False
+    delete_old_files_flag: bool = False
 
 
 def run_script(arguments):
