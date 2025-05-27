@@ -30,7 +30,7 @@ wmul_file_manager = "wmul_file_manager.cli:wmul_file_manager_cli"
 
 [project.optional-dependencies]
 test = [
-  "pytest", "pytest-mock", "pyfakefs", "wmul_test_utils>=0.4.0"
+  "pytest", "pytest-mock", "pyfakefs", "wmul_test_utils>=0.6.0"
 ]
 tox = [
   "tox"
