@@ -10,6 +10,9 @@ Mainly designed to be run from command-line, but can also be called from other s
 Access from the command-line is through cli.bulk_copy.
 
 ============ Change Log ============
+2025-May-27 = Make run_script a method on BulkCopierArguments. The second step in making this program into something
+                that can runs as a service.
+
 2025-May-22 = Change the arguments from a namedtuple to a pydantic model. The first step in making this program into
                 something that can run as a service.
 
@@ -205,13 +208,13 @@ class BulkCopierArguments(ArgumentBase):
     delete_old_files_flag: bool = False
 
 
-def run_script(arguments):
-    _logger.info(f"Starting run_script with {arguments}")
-    for this_source_dir in arguments.source_directories:
-        _logger.debug(f"Working on {this_source_dir}")
-        this_dest_dir = arguments.destination_directory / this_source_dir.name
-        _synchronize_directories(this_source_dir, this_dest_dir, arguments.exclude_suffixes_list,
-                                 arguments.ignore_directories, arguments.force_copy_flag)
-        if arguments.delete_old_files_flag:
-            _logger.info("Deleting Old Files.")
-            _delete_old_files(this_source_dir, this_dest_dir, arguments.exclude_suffixes_list)
+    def run_script(self):
+        _logger.info(f"Starting run_script")
+        for this_source_dir in self.source_directories:
+            _logger.debug(f"Working on {this_source_dir}")
+            this_dest_dir = self.destination_directory / this_source_dir.name
+            _synchronize_directories(this_source_dir, this_dest_dir, self.exclude_suffixes_list,
+                                    self.ignore_directories, self.force_copy_flag)
+            if self.delete_old_files_flag:
+                _logger.info("Deleting Old Files.")
+                _delete_old_files(this_source_dir, this_dest_dir, self.exclude_suffixes_list)

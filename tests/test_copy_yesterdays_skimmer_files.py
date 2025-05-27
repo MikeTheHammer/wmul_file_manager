@@ -34,12 +34,18 @@ import pathlib
 import pytest
 
 from wmul_file_manager import CopyYesterdaysSkimmerFiles
-from wmul_file_manager.BulkCopier import BulkCopierArguments
 
 
 @pytest.mark.parametrize('folder_exists', [True, False])
 def test__copy_folder(mocker, fs, folder_exists):
-    mock_bulk_copier = mocker.patch("wmul_file_manager.BulkCopier.run_script")
+    mock_bulk_copier_run_script = mocker.Mock()
+
+    mock_bulk_copier = mocker.patch(
+        "wmul_file_manager.CopyYesterdaysSkimmerFiles.BulkCopierArguments",
+        return_value = mocker.Mock(run_script = mock_bulk_copier_run_script)
+    )
+
+    #from wmul_file_manager import CopyYesterdaysSkimmerFiles
 
     source_path = pathlib.Path("C:\\Temp")
     if folder_exists:
@@ -49,19 +55,19 @@ def test__copy_folder(mocker, fs, folder_exists):
 
     CopyYesterdaysSkimmerFiles._copy_folder(source_path, mock_destination_path)
 
-    expected_arguments = BulkCopierArguments(
-        source_directories=[source_path],
-        destination_directory=mock_destination_path,
-        exclude_suffixes_list=[],
-        ignore_directories=[],
-        force_copy_flag=False,
-        delete_old_files_flag=False
-    )
-
     if folder_exists:
-        mock_bulk_copier.assert_called_once_with(arguments=expected_arguments)
+        mock_bulk_copier.assert_called_once_with(
+            source_directories=[source_path],
+            destination_directory=mock_destination_path,
+            exclude_suffixes_list=[],
+            ignore_directories=[],
+            force_copy_flag=False,
+            delete_old_files_flag=False
+        )
+        mock_bulk_copier_run_script.assert_called_once_with()
     else:
         mock_bulk_copier.assert_not_called()
+        mock_bulk_copier_run_script.assert_not_called()
 
 
 def test__get_date_folder_name():

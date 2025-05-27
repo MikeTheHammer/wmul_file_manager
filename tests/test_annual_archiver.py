@@ -87,9 +87,11 @@ def setup_run_script(mocker):
     mock_equivalent_file_finder_arguments = mocker.Mock(equivalent_suffixes_list=mock_equivalent_suffixes_list)
     mock_source_paths = "mock_source_paths"
     mock_destination_path = "mock_destination_path"
+    mock_bulk_copier_run_script = mocker.Mock()
     mock_bulk_copier_arguments = mocker.Mock(
         source_directories=mock_source_paths,
-        destination_directory=mock_destination_path
+        destination_directory=mock_destination_path,
+        run_script=mock_bulk_copier_run_script
     )
 
     mock_archive_list_of_folders = mocker.Mock()
@@ -98,7 +100,7 @@ def setup_run_script(mocker):
 
     mock_delete_junk_files_run_script = mocker.patch("wmul_file_manager.DeleteJunkFiles.run_script")
     mock_equivalent_file_finder_run_script = mocker.patch("wmul_file_manager.EquivalentFileFinder.run_script")
-    mock_bulk_copier_run_script = mocker.patch("wmul_file_manager.BulkCopier.run_script")
+    
     mock_compare_start_and_end = mocker.patch("wmul_file_manager.AnnualArchiver.compare_start_and_end_folders_by_names")
 
     AnnualArchiver.run_script(mock_delete_junk_files_arguments, mock_equivalent_file_finder_arguments,
@@ -114,7 +116,6 @@ def setup_run_script(mocker):
         mock_equivalent_file_finder_run_script=mock_equivalent_file_finder_run_script,
         mock_source_paths=mock_source_paths,
         mock_destination_path=mock_destination_path,
-        mock_bulk_copier_arguments=mock_bulk_copier_arguments,
         mock_bulk_copier_run_script=mock_bulk_copier_run_script,
         mock_archive_list_of_folders=mock_archive_list_of_folders,
         mock_compress_media_in_folder=mock_compress_media_in_folder,
@@ -135,10 +136,8 @@ def test_run_script_equivalent_file_finder_called_correctly(setup_run_script):
     mock_equivalent_file_finder_run_script.assert_called_once_with(mock_equivalent_file_finder_arguments)
 
 def test_run_script_bulk_copier_called_correctly(setup_run_script):
-    mock_bulk_copier_arguments = setup_run_script.mock_bulk_copier_arguments
     mock_bulk_copier_run_script = setup_run_script.mock_bulk_copier_run_script
-
-    mock_bulk_copier_run_script.assert_called_once_with(mock_bulk_copier_arguments)
+    mock_bulk_copier_run_script.assert_called_once_with()
 
 def test_run_script_compress_media_in_folder_called_correctly(setup_run_script):
     mock_archive_list_of_folders = setup_run_script.mock_archive_list_of_folders

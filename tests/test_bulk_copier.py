@@ -461,7 +461,7 @@ def test_run_script_delete_old_false(setup_run_script):
         delete_old_files_flag=delete_old_files_flag
     )
 
-    BulkCopier.run_script(bca)
+    bca.run_script()
 
     mock_synchronize_paths.assert_any_call(dir1_src, dir1_dst, exclude_suffixes_list, ignore_paths, force_copy_flag)
     mock_synchronize_paths.assert_any_call(dir2_src, dir2_dst, exclude_suffixes_list, ignore_paths, force_copy_flag)
@@ -486,7 +486,7 @@ def test_run_script_delete_old_true(setup_run_script):
         delete_old_files_flag=delete_old_files_flag
     )
 
-    BulkCopier.run_script(bca)
+    bca.run_script()
 
     mock_synchronize_paths.assert_any_call(dir1_src, dir1_dst, exclude_suffixes_list, ignore_paths, force_copy_flag)
     mock_synchronize_paths.assert_any_call(dir2_src, dir2_dst, exclude_suffixes_list, ignore_paths, force_copy_flag)

@@ -11,6 +11,8 @@ It copies the files in the source date folder to the destination date folder.
     U:\\Skimmer\\2018-05-15\\.
 
 ============ Change Log ============
+2025-May-27 = Refactor call to BulkCopier.
+
 2018-Jul-05 = Remove redundant trailing path separator from get_date_folder_name
 
 2018-May-16 = Remove old command-line interface that was housed in this file and based on argparse.
@@ -30,7 +32,7 @@ It copies the files in the source date folder to the destination date folder.
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2017-2018 Michael Stanley
+Copyright (c) 2017-2018, 2025 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +54,7 @@ SOFTWARE.
 """
 from datetime import date, timedelta
 
-from wmul_file_manager import BulkCopier
+from wmul_file_manager.BulkCopier import BulkCopierArguments
 import wmul_logger
 
 logger = wmul_logger.get_logger()
@@ -62,7 +64,7 @@ def _copy_folder(source_path, destination_path):
     if not source_path.exists():
         logger.debug(f"{source_path} does not exist, returning.")
         return
-    arguments = BulkCopier.BulkCopierArguments(
+    arguments = BulkCopierArguments(
         source_directories=[source_path],
         destination_directory=destination_path,
         exclude_suffixes_list=[],
@@ -71,7 +73,7 @@ def _copy_folder(source_path, destination_path):
         delete_old_files_flag=False
     )
     logger.debug(f"Calling BulkCopier with {arguments}")
-    BulkCopier.run_script(arguments=arguments)
+    arguments.run_script()
 
 
 def get_date_folder_name(source_base, relevant_date):

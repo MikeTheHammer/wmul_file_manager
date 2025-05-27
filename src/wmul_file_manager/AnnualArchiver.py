@@ -5,6 +5,8 @@ For yearly archiving. Deletes the junk files, renames equivalent files, copies e
     converts the wav files to mp3s, and does a final comparison to check for missing files.
 
 ============ Change Log ============
+2025-May-27 = Refactor call to BulkCopier.
+
 2018-May-29 = BUGFIX: Fix AnnualArchiver's call to BulkCopier.
 
 2018-May-24 = Rename logger to _logger.
@@ -78,7 +80,7 @@ For yearly archiving. Deletes the junk files, renames equivalent files, copies e
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2014-2018, 2024 Michael Stanley
+Copyright (c) 2014-2018, 2024-2025 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -100,7 +102,7 @@ SOFTWARE.
 """
 import wmul_logger
 
-from wmul_file_manager import BulkCopier, DeleteJunkFiles, EquivalentFileFinder, FolderComparer
+from wmul_file_manager import DeleteJunkFiles, EquivalentFileFinder, FolderComparer
 
 _logger = wmul_logger.get_logger()
 
@@ -128,7 +130,7 @@ def run_script(delete_junk_files_arguments, equivalent_file_finder_arguments, bu
     _logger.debug(f"Starting run_script with {locals()}")
     DeleteJunkFiles.run_script(delete_junk_files_arguments)
     EquivalentFileFinder.run_script(equivalent_file_finder_arguments)
-    BulkCopier.run_script(bulk_copier_arguments)
+    bulk_copier_arguments.run_script()
     compress_media_in_folder.archive_list_of_folders()
     compare_start_and_end_folders_by_names(
         bulk_copier_arguments.source_directories,
