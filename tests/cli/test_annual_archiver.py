@@ -29,7 +29,7 @@ SOFTWARE.
 """
 from click.testing import CliRunner
 from wmul_file_manager import cli
-from wmul_file_manager.BulkCopier import BulkCopierArguments
+from wmul_file_manager.BulkCopier import BulkCopier
 from wmul_file_manager.DeleteJunkFiles import DeleteJunkFilesArguments
 from wmul_file_manager.EquivalentFileFinder import EquivalentFileFinderArguments
 from wmul_test_utils import make_namedtuple
@@ -235,7 +235,7 @@ def test_annual_archiver_normal_path(setup_annual_archiver, capsys, caplog):
         output_path=output_path
     )
 
-    expected_bc_args = BulkCopierArguments(
+    expected_bc_args = BulkCopier(
         source_directories=expected_sources,
         destination_directory=destination_folder,
         exclude_suffixes_list=exclude_suffixes_list,

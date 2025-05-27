@@ -65,8 +65,7 @@ SOFTWARE.
 """
 import datetime
 from pathlib import Path
-from wmul_file_manager.BulkCopier import BulkCopierArguments
-from wmul_file_manager.BulkCopier import run_script as run_bulk_copier
+from wmul_file_manager.BulkCopier import BulkCopier
 from wmul_file_manager.CompressMediaInFolder import AudioCompressor, VideoCompressor, NullCompressor, \
     CompressMediaInFolder
 from wmul_file_manager.DeleteJunkFiles import DeleteJunkFilesArguments
@@ -173,7 +172,7 @@ def bulk_copy(sources, destination, exclude_ext, ignore_folder, force_copy, dele
     else:
         ignore_folder = []
 
-    arguments = BulkCopierArguments(
+    bc = BulkCopier(
         source_directories=source_paths,
         destination_directory=destination_path,
         exclude_suffixes_list=exclude_ext,
@@ -182,7 +181,7 @@ def bulk_copy(sources, destination, exclude_ext, ignore_folder, force_copy, dele
         delete_old_files_flag=delete_old
     )
 
-    run_bulk_copier(arguments=arguments)
+    bc.run_script()
 
 
 @wmul_file_manager_cli.command()
@@ -622,7 +621,7 @@ def annual_archive(sources, destination, equivalent, junk_suffix, junk_name, equ
         output_path=output
     )
 
-    bulk_copier_arguments = BulkCopierArguments(
+    bulk_copier_arguments = BulkCopier(
         source_directories=sources,
         destination_directory=destination,
         exclude_suffixes_list=copy_exclude_ext,

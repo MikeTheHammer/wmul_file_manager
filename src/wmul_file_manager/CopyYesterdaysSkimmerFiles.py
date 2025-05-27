@@ -54,7 +54,7 @@ SOFTWARE.
 """
 from datetime import date, timedelta
 
-from wmul_file_manager.BulkCopier import BulkCopierArguments
+from wmul_file_manager.BulkCopier import BulkCopier
 import wmul_logger
 
 logger = wmul_logger.get_logger()
@@ -64,7 +64,7 @@ def _copy_folder(source_path, destination_path):
     if not source_path.exists():
         logger.debug(f"{source_path} does not exist, returning.")
         return
-    arguments = BulkCopierArguments(
+    arguments = BulkCopier(
         source_directories=[source_path],
         destination_directory=destination_path,
         exclude_suffixes_list=[],

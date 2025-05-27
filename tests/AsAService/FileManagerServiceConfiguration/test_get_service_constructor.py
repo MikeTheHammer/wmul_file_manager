@@ -48,7 +48,7 @@ def test_bad_service_type():
 
 
 def test_bulk_copier_service():
-    from wmul_file_manager.BulkCopier import BulkCopierArguments
+    from wmul_file_manager.BulkCopier import BulkCopier
     bulk_copier_service_type = "bulkcopier"
 
     service_types_under_test = multiple_random_case_strings(
@@ -59,4 +59,4 @@ def test_bulk_copier_service():
 
     for st in service_types_under_test:
         result = _get_service_constructor(service_type=st)
-        assert result == BulkCopierArguments
+        assert result == BulkCopier

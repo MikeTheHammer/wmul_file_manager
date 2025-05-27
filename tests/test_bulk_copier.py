@@ -452,7 +452,7 @@ def test_run_script_delete_old_false(setup_run_script):
     force_copy_flag = False
     delete_old_files_flag = False
 
-    bca = BulkCopier.BulkCopierArguments(
+    bca = BulkCopier.BulkCopier(
         source_directories=source_paths,
         destination_directory=destination_path,
         exclude_suffixes_list=exclude_suffixes_list,
@@ -477,7 +477,7 @@ def test_run_script_delete_old_true(setup_run_script):
     force_copy_flag = False
     delete_old_files_flag = True
 
-    bca = BulkCopier.BulkCopierArguments(
+    bca = BulkCopier.BulkCopier(
         source_directories=source_paths,
         destination_directory=destination_path,
         exclude_suffixes_list=exclude_suffixes_list,

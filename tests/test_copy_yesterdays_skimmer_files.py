@@ -41,7 +41,7 @@ def test__copy_folder(mocker, fs, folder_exists):
     mock_bulk_copier_run_script = mocker.Mock()
 
     mock_bulk_copier = mocker.patch(
-        "wmul_file_manager.CopyYesterdaysSkimmerFiles.BulkCopierArguments",
+        "wmul_file_manager.CopyYesterdaysSkimmerFiles.BulkCopier",
         return_value = mocker.Mock(run_script = mock_bulk_copier_run_script)
     )
 

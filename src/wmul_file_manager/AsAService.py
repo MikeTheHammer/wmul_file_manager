@@ -37,12 +37,11 @@ except ImportError:
 import yaml
 from dataclasses import dataclass
 from wmul_file_manager.ArgumentBase import ArgumentBase
-from wmul_file_manager.BulkCopier import BulkCopierArguments as BulkCopier
+from wmul_file_manager.BulkCopier import BulkCopier as BulkCopier
 
 _services_available: dict[str, type[ArgumentBase]] = {
     "bulkcopier": BulkCopier 
 }
-
 
 
 def create_services_from_dict(configuration_dict: dict[str, dict]):

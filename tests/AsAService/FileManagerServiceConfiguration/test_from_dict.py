@@ -30,7 +30,7 @@ SOFTWARE.
 import pytest
 from pathlib import Path
 from wmul_file_manager.AsAService import create_services_from_dict
-from wmul_file_manager.BulkCopier import BulkCopierArguments as BulkCopier
+from wmul_file_manager.BulkCopier import BulkCopier
 from wmul_test_utils import make_namedtuple
 
 

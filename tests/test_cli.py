@@ -34,7 +34,7 @@ SOFTWARE.
 from click.testing import CliRunner
 from collections import namedtuple
 from wmul_file_manager import cli
-from wmul_file_manager.BulkCopier import BulkCopierArguments
+from wmul_file_manager.BulkCopier import BulkCopier
 from wmul_file_manager.DeleteJunkFiles import DeleteJunkFilesArguments
 from wmul_file_manager.EquivalentFileFinder import EquivalentFileFinderArguments
 from wmul_file_manager.FolderComparer import FolderComparerArguments
@@ -75,7 +75,7 @@ def random_bytes(count=100):
 
 @pytest.fixture(scope="function")
 def setup_bulk_copy(mocker, fs):
-    mock_run_bulk_copier = mocker.patch("wmul_file_manager.cli.run_bulk_copier")
+    mock_bulk_copier = mocker.patch("wmul_file_manager.cli.BulkCopier")
     base_dir = pathlib.Path(r"C:\\Temp")
     src1 = base_dir / "src1"
     src2 = base_dir / "src2"
@@ -85,7 +85,7 @@ def setup_bulk_copy(mocker, fs):
     return make_namedtuple(
         "setup_bulk_copy",
         fs=fs, 
-        mock_run_bulk_copier=mock_run_bulk_copier, 
+        mock_bulk_copier=mock_bulk_copier, 
         src1=src1, 
         src2=src2, 
         dst=dst, 
@@ -102,7 +102,7 @@ def test_bulk_copy_source_and_destination(setup_bulk_copy):
 
     assert result.exit_code == 0
 
-    expected_arguments = BulkCopierArguments(
+    setup_bulk_copy.mock_bulk_copier.assert_called_once_with(
         source_directories=[setup_bulk_copy.src1],
         destination_directory=setup_bulk_copy.dst,
         exclude_suffixes_list=[],
@@ -110,8 +110,6 @@ def test_bulk_copy_source_and_destination(setup_bulk_copy):
         force_copy_flag=False,
         delete_old_files_flag=False
     )
-
-    setup_bulk_copy.mock_run_bulk_copier.assert_called_once_with(arguments=expected_arguments)
 
 
 def test_bulk_copy_multiple_source_and_destination(setup_bulk_copy):
@@ -127,7 +125,7 @@ def test_bulk_copy_multiple_source_and_destination(setup_bulk_copy):
 
     assert result.exit_code == 0
 
-    expected_arguments = BulkCopierArguments(
+    setup_bulk_copy.mock_bulk_copier.assert_called_once_with(
         source_directories=[setup_bulk_copy.src1, setup_bulk_copy.src2],
         destination_directory=setup_bulk_copy.dst,
         exclude_suffixes_list=[],
@@ -135,8 +133,6 @@ def test_bulk_copy_multiple_source_and_destination(setup_bulk_copy):
         force_copy_flag=False,
         delete_old_files_flag=False
     )
-
-    setup_bulk_copy.mock_run_bulk_copier.assert_called_once_with(arguments=expected_arguments)
 
 
 def test_bulk_copy_non_existant_source(setup_bulk_copy):
@@ -146,7 +142,7 @@ def test_bulk_copy_non_existant_source(setup_bulk_copy):
 
     assert result.exit_code != 0
 
-    setup_bulk_copy.mock_run_bulk_copier.assert_not_called()
+    setup_bulk_copy.mock_bulk_copier.assert_not_called()
 
 
 def test_bulk_copy_exclude_exts(setup_bulk_copy):
@@ -161,7 +157,7 @@ def test_bulk_copy_exclude_exts(setup_bulk_copy):
 
     assert result.exit_code == 0
 
-    expected_arguments = BulkCopierArguments(
+    setup_bulk_copy.mock_bulk_copier.assert_called_once_with(        
         source_directories=[setup_bulk_copy.src1],
         destination_directory=setup_bulk_copy.dst,
         exclude_suffixes_list=[".wav", ".mp3"],
@@ -169,8 +165,6 @@ def test_bulk_copy_exclude_exts(setup_bulk_copy):
         force_copy_flag=False,
         delete_old_files_flag=False
     )
-
-    setup_bulk_copy.mock_run_bulk_copier.assert_called_once_with(arguments=expected_arguments)
 
 
 def test_bulk_copy_ignore_paths(setup_bulk_copy):
@@ -191,7 +185,7 @@ def test_bulk_copy_ignore_paths(setup_bulk_copy):
 
     assert result.exit_code == 0
 
-    expected_arguments = BulkCopierArguments(
+    setup_bulk_copy.mock_bulk_copier.assert_called_once_with(
         source_directories=[src1],
         destination_directory=setup_bulk_copy.dst,
         exclude_suffixes_list=[],
@@ -199,8 +193,6 @@ def test_bulk_copy_ignore_paths(setup_bulk_copy):
         force_copy_flag=False,
         delete_old_files_flag=False
     )
-
-    setup_bulk_copy.mock_run_bulk_copier.assert_called_once_with(arguments=expected_arguments)
 
 
 def test_bulk_copy_force_copy(setup_bulk_copy):
@@ -215,7 +207,7 @@ def test_bulk_copy_force_copy(setup_bulk_copy):
 
     assert result.exit_code == 0
 
-    expected_arguments = BulkCopierArguments(
+    setup_bulk_copy.mock_bulk_copier.assert_called_once_with(
         source_directories=[setup_bulk_copy.src1],
         destination_directory=setup_bulk_copy.dst,
         exclude_suffixes_list=[],
@@ -223,8 +215,6 @@ def test_bulk_copy_force_copy(setup_bulk_copy):
         force_copy_flag=True,
         delete_old_files_flag=False
     )
-
-    setup_bulk_copy.mock_run_bulk_copier.assert_called_once_with(arguments=expected_arguments)
 
 
 def test_bulk_copy_delete_old(setup_bulk_copy):
@@ -239,7 +229,7 @@ def test_bulk_copy_delete_old(setup_bulk_copy):
 
     assert result.exit_code == 0
 
-    expected_arguments = BulkCopierArguments(
+    setup_bulk_copy.mock_bulk_copier.assert_called_once_with(        
         source_directories=[setup_bulk_copy.src1],
         destination_directory=setup_bulk_copy.dst,
         exclude_suffixes_list=[],
@@ -247,8 +237,6 @@ def test_bulk_copy_delete_old(setup_bulk_copy):
         force_copy_flag=False,
         delete_old_files_flag=True
     )
-
-    setup_bulk_copy.mock_run_bulk_copier.assert_called_once_with(arguments=expected_arguments)
 
 
 @pytest.fixture(scope="function")

@@ -30,8 +30,8 @@ SOFTWARE.
 import pytest
 import yaml
 from pathlib import Path
-from wmul_file_manager.AsAService import FileManagerService, FileManagerServiceConfiguration
-from wmul_file_manager.BulkCopier import BulkCopierArguments
+from wmul_file_manager.AsAService import FileManagerService
+from wmul_file_manager.BulkCopier import BulkCopier
 
 
 def test_load_config_from_file_valid(fs):

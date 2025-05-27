@@ -13,6 +13,8 @@ Access from the command-line is through cli.bulk_copy.
 2025-May-27 = Make run_script a method on BulkCopierArguments. The second step in making this program into something
                 that can runs as a service.
 
+              Rename BulkCopierArguments to just BulkCopier.
+
 2025-May-22 = Change the arguments from a namedtuple to a pydantic model. The first step in making this program into
                 something that can run as a service.
 
@@ -199,7 +201,7 @@ def _has_matching_source_file(destination_item, source_path):
     return source_item.exists()
 
 
-class BulkCopierArguments(ArgumentBase):
+class BulkCopier(ArgumentBase):
     source_directories: list[Path]
     destination_directory: Path
     exclude_suffixes_list: list[str] = []
