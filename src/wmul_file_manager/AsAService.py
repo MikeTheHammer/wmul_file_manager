@@ -36,7 +36,6 @@ except ImportError:
     from yaml import SafeLoader
 import yaml
 from dataclasses import dataclass
-from pydantic import BaseModel
 from wmul_file_manager.ArgumentBase import ArgumentBase
 from wmul_file_manager.BulkCopier import BulkCopierArguments as BulkCopier
 
@@ -45,46 +44,43 @@ _services_available: dict[str, type[ArgumentBase]] = {
 }
 
 
-class FileManagerServiceConfiguration(BaseModel):
-    services: dict[str, ArgumentBase]
 
-    @classmethod
-    def from_dict(cls, configuration_dict: dict[str, dict]):
-        services: dict[str, ArgumentBase] = {}
-        for inventory_name, service_configuration_dict in configuration_dict.items():
-            try:
-                cls._validate_service_configuration_dict(service_configuration_dict)
-                for service_type, service_arguments in service_configuration_dict.items():
-                    service_constructor = cls._get_service_constructor(service_type)
-                    services[inventory_name] = service_constructor(**service_arguments)
-            except ValueError as ve:
-                raise ValueError(f"Service: {inventory_name} has an incorrect configuration.") from ve
-        return cls(services=services)
-
-    @classmethod
-    def _validate_service_configuration_dict(cls, service_configuration_dict) -> bool:
-        if not isinstance(service_configuration_dict, dict):
-            raise ValueError(
-                    f"The configuration for the service requires a dictionary type. Instead, it received Type: "
-                    f"'{type(service_configuration_dict)}', {service_configuration_dict} ."
-                )
-        if (count_of_function_names := len(service_configuration_dict)) != 1:
-            raise ValueError(
-                    f"The configuration for the service does not have the correct number of function names. There "
-                    f"must be exactly one function name per service. This entry has {count_of_function_names}: "
-                    f"{list(service_configuration_dict.keys())} ."
-                )
-        return True
-
-    @classmethod
-    def _get_service_constructor(cls, service_type: str) -> type[ArgumentBase]:
+def create_services_from_dict(configuration_dict: dict[str, dict]):
+    services: dict[str, ArgumentBase] = {}
+    for inventory_name, service_configuration_dict in configuration_dict.items():
         try:
-            return _services_available[service_type.casefold()]
-        except KeyError:
-            raise ValueError(
-                f"The service wants service type '{service_type}', but there is no service available "
-                f"with that type. The available services are: {list(_services_available.keys())}"
+            _validate_service_configuration_dict(service_configuration_dict)
+            for service_type, service_arguments in service_configuration_dict.items():
+                service_constructor = _get_service_constructor(service_type)
+                services[inventory_name] = service_constructor(**service_arguments)
+        except ValueError as ve:
+            raise ValueError(f"Service: {inventory_name} has an incorrect configuration.") from ve
+    return services
+
+
+def _validate_service_configuration_dict(service_configuration_dict) -> bool:
+    if not isinstance(service_configuration_dict, dict):
+        raise ValueError(
+                f"The configuration for the service requires a dictionary type. Instead, it received Type: "
+                f"'{type(service_configuration_dict)}', {service_configuration_dict} ."
             )
+    if (count_of_function_names := len(service_configuration_dict)) != 1:
+        raise ValueError(
+                f"The configuration for the service does not have the correct number of function names. There "
+                f"must be exactly one function name per service. This entry has {count_of_function_names}: "
+                f"{list(service_configuration_dict.keys())} ."
+            )
+    return True
+
+
+def _get_service_constructor(service_type: str) -> type[ArgumentBase]:
+    try:
+        return _services_available[service_type.casefold()]
+    except KeyError:
+        raise ValueError(
+            f"The service wants service type '{service_type}', but there is no service available "
+            f"with that type. The available services are: {list(_services_available.keys())}"
+        )
 
         
 
@@ -100,5 +96,8 @@ class FileManagerService:
 
     def service_loop(self):
         configuration_dict = self._load_config_from_file()
-        configuration = FileManagerServiceConfiguration.from_dict(configuration_dict=configuration_dict)
-        return configuration
+        services = create_services_from_dict(configuration_dict=configuration_dict)
+        for inventory_name, service in services.items():
+            pass
+
+        

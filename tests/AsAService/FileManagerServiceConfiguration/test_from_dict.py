@@ -29,7 +29,7 @@ SOFTWARE.
 """
 import pytest
 from pathlib import Path
-from wmul_file_manager.AsAService import FileManagerServiceConfiguration
+from wmul_file_manager.AsAService import create_services_from_dict
 from wmul_file_manager.BulkCopier import BulkCopierArguments as BulkCopier
 from wmul_test_utils import make_namedtuple
 
@@ -64,9 +64,7 @@ def setup_one_inventory():
     expected_keys = ["Thing_1"]
     expected_source_directories = [temp_1, temp_2]
 
-    result = FileManagerServiceConfiguration.from_dict(configuration_dict=configuration_dict_contents)
-
-    result_services = result.services
+    result_services = create_services_from_dict(configuration_dict=configuration_dict_contents)
 
     return make_namedtuple(
         "setup_one_inventory",
@@ -151,10 +149,8 @@ def setup_two_inventory():
     thing_1_expected_source_directories = [temp_1, temp_2]
     thing_2_expected_source_directories = [temp_3, temp_4]
 
-    result = FileManagerServiceConfiguration.from_dict(configuration_dict=configuration_dict_contents)
-
-    result_services = result.services
-
+    result_services = create_services_from_dict(configuration_dict=configuration_dict_contents)
+    
     return make_namedtuple(
         "setup_one_inventory",
         result_services=result_services,

@@ -29,7 +29,7 @@ SOFTWARE.
 """
 import pytest
 import re
-from wmul_file_manager.AsAService import FileManagerServiceConfiguration
+from wmul_file_manager.AsAService import _get_service_constructor
 from wmul_test_utils import multiple_random_case_strings
 
 
@@ -42,7 +42,7 @@ def test_bad_service_type():
     )
 
     with pytest.raises(ValueError, match=expected_error_message):
-        FileManagerServiceConfiguration._get_service_constructor(
+        _get_service_constructor(
             service_type=service_type
         )
 
@@ -58,5 +58,5 @@ def test_bulk_copier_service():
     service_types_under_test.append(bulk_copier_service_type) # Always check the default casing.
 
     for st in service_types_under_test:
-        result = FileManagerServiceConfiguration._get_service_constructor(service_type=st)
+        result = _get_service_constructor(service_type=st)
         assert result == BulkCopierArguments

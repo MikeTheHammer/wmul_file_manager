@@ -29,7 +29,7 @@ SOFTWARE.
 """
 import pytest
 import re
-from wmul_file_manager.AsAService import FileManagerServiceConfiguration
+from wmul_file_manager.AsAService import _validate_service_configuration_dict
 
 
 def test_all_good():
@@ -37,7 +37,7 @@ def test_all_good():
         "Function_1": True
     }
 
-    assert FileManagerServiceConfiguration._validate_service_configuration_dict(
+    assert _validate_service_configuration_dict(
         service_configuration_dict=service_configuration_dict
     )
 
@@ -60,7 +60,7 @@ def test_not_a_dict(service_configuration_dict_type):
     )
 
     with pytest.raises(ValueError, match=expected_error_message):
-        FileManagerServiceConfiguration._validate_service_configuration_dict(
+        _validate_service_configuration_dict(
             service_configuration_dict=service_configuration_dict
         )
     
@@ -74,7 +74,7 @@ def test_empty_dict():
     )
 
     with pytest.raises(ValueError, match=expected_error_message):
-        FileManagerServiceConfiguration._validate_service_configuration_dict(
+        _validate_service_configuration_dict(
             service_configuration_dict=service_configuration_dict
         )
 
@@ -93,6 +93,6 @@ def test_three_item_dict():
     )
 
     with pytest.raises(ValueError, match=expected_error_message):
-        FileManagerServiceConfiguration._validate_service_configuration_dict(
+        _validate_service_configuration_dict(
             service_configuration_dict=service_configuration_dict
         )
