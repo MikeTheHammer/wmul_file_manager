@@ -2,7 +2,7 @@
 @Author = 'Mike Stanley'
 
 ============ Change Log ============
-2025-May-22 = Created.
+2025-May-23 = Created.
 
 ============ License ============
 The MIT License (MIT)
@@ -27,10 +27,36 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from wmul_file_manager.AsAService import _bulk_copier_validator
 import pytest
+import re
+from wmul_file_manager.AsAService import FileManagerServiceConfiguration
+from wmul_test_utils import multiple_random_case_strings
 
-@pytest.mark.skip
-def test_is_dict():
-    function_arguments_dict = { "source_directories" }
 
+def test_bad_service_type():
+    service_type = "mock_service_type"
+
+    expected_error_message = re.escape(
+        f"The service wants service type '{service_type}', but there is no service available with that type. The "
+        f"available services are: ['bulkcopier']"
+    )
+
+    with pytest.raises(ValueError, match=expected_error_message):
+        FileManagerServiceConfiguration._get_service_constructor(
+            service_type=service_type
+        )
+
+
+def test_bulk_copier_service():
+    from wmul_file_manager.BulkCopier import BulkCopierArguments
+    bulk_copier_service_type = "bulkcopier"
+
+    service_types_under_test = multiple_random_case_strings(
+        input_string=bulk_copier_service_type
+    )
+
+    service_types_under_test.append(bulk_copier_service_type) # Always check the default casing.
+
+    for st in service_types_under_test:
+        result = FileManagerServiceConfiguration._get_service_constructor(service_type=st)
+        assert result == BulkCopierArguments

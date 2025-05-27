@@ -27,11 +27,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from wmul_file_manager.AsAService import WMULFileManagerService
 import pytest
+import yaml
+from pathlib import Path
+from wmul_file_manager.AsAService import FileManagerService, FileManagerServiceConfiguration
+from wmul_file_manager.BulkCopier import BulkCopierArguments
 
-@pytest.mark.skip
-def test_load_config_from_file(fs):
+
+def test_load_config_from_file_valid(fs):
     configuration_string = r"""
 Thing_1:
     bulk-copier:
@@ -75,8 +78,38 @@ Thing_1:
         }
     }
 
-    wmfs = WMULFileManagerService(config_filename=config_filename)
+    fms = FileManagerService(config_filename=config_filename)
 
-    result = wmfs._load_config_from_file()
+    result = fms._load_config_from_file()
 
     assert result == expected_dictionary
+
+
+
+def test_load_config_from_file_not_valid(fs):
+    configuration_string = r"""
+Thing_1
+    bulk-copier:
+        source_directories:
+            - "C:\\Temp_1"
+            - "C:\\Temp_2"
+            - "C:\\Temp_3"
+        destination_directory: "C:\\Destination"
+        exclude_suffixes: 
+            - ".sfk"
+            - ".pk"
+        ignore_directories:
+            - "C:\\Temp_1\\Bad Files"
+        force_copy: True
+        delete_old_files: True
+"""
+
+    config_filename = "C:\\fileman\\config.yaml"
+
+    fs.create_file(config_filename, contents=configuration_string)
+
+    fms = FileManagerService(config_filename=config_filename)
+
+    with pytest.raises(yaml.YAMLError):
+        fms._load_config_from_file()
+

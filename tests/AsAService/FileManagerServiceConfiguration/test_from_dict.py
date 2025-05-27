@@ -1,0 +1,199 @@
+"""
+@Author = 'Mike Stanley'
+
+============ Change Log ============
+2025-May-27 = Created.
+
+============ License ============
+The MIT License (MIT)
+
+Copyright (c) 2025 Michael Stanley
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+import pytest
+from pathlib import Path
+from wmul_file_manager.AsAService import FileManagerServiceConfiguration
+from wmul_file_manager.BulkCopier import BulkCopierArguments as BulkCopier
+from wmul_test_utils import make_namedtuple
+
+
+@pytest.fixture(scope="function")
+def setup_one_inventory():
+    temp_1 = Path("C:\\Temp_1")
+    temp_2 = Path("C:\\Temp_2")
+    destination = Path("C:\\Destination")
+
+    configuration_dict_contents = { 
+        "Thing_1": {
+            "bulkcopier": {
+                "source_directories": [
+                    temp_1,
+                    temp_2
+                ],
+                "destination_directory": destination,
+                "exclude_suffixes_list": [
+                    ".sfk",
+                    ".pk"
+                ],
+                "ignore_directories": [
+                    Path("C:\\Temp_1\\BadDir")
+                ],
+                "force_copy_flag": False,
+                "delete_old_files_flag": True
+            }
+        }
+    }
+
+    expected_keys = ["Thing_1"]
+    expected_source_directories = [temp_1, temp_2]
+
+    result = FileManagerServiceConfiguration.from_dict(configuration_dict=configuration_dict_contents)
+
+    result_services = result.services
+
+    return make_namedtuple(
+        "setup_one_inventory",
+        result_services=result_services,
+        expected_keys=expected_keys,
+        expected_source_directories=expected_source_directories,
+        expected_destination_directory=destination
+    )
+
+def test_one_services_is_dict(setup_one_inventory):
+    assert isinstance(setup_one_inventory.result_services, dict)
+
+def test_one_services_len_is_one(setup_one_inventory):
+    assert len(setup_one_inventory.result_services) == 1
+
+def test_one_services_has_expected_keys(setup_one_inventory):
+    assert list(setup_one_inventory.result_services.keys()) == setup_one_inventory.expected_keys
+
+def test_one_thing_1_is_bulkcopier(setup_one_inventory):
+    thing_1 = setup_one_inventory.result_services["Thing_1"]
+    assert isinstance(thing_1, BulkCopier)
+
+def test_one_thing_1_has_source_directories(setup_one_inventory):
+    thing_1 = setup_one_inventory.result_services["Thing_1"]
+    assert thing_1.source_directories == setup_one_inventory.expected_source_directories
+
+def test_one_thing_1_has_destination_directory(setup_one_inventory):
+    thing_1 = setup_one_inventory.result_services["Thing_1"]
+    assert thing_1.destination_directory == setup_one_inventory.expected_destination_directory
+
+
+@pytest.fixture(scope="function")
+def setup_two_inventory():
+    temp_1 = Path("C:\\Temp_1")
+    temp_2 = Path("C:\\Temp_2")
+    destination = Path("C:\\Destination")
+
+    temp_3 = Path("C:\\Temp_3")
+    temp_4 = Path("C:\\Temp_4")
+    destination_2 = Path("C:\\Destination_2")
+
+    configuration_dict_contents = { 
+        "Thing_1": {
+            "bulkcopier": {
+                "source_directories": [
+                    temp_1,
+                    temp_2
+                ],
+                "destination_directory": destination,
+                "exclude_suffixes_list": [
+                    ".sfk",
+                    ".pk"
+                ],
+                "ignore_directories": [
+                    Path("C:\\Temp_1\\BadDir")
+                ],
+                "force_copy_flag": False,
+                "delete_old_files_flag": True
+            }
+        },
+        "Thing_2": {
+            "bulkcopier": {
+                "source_directories": [
+                    temp_3,
+                    temp_4
+                ],
+                "destination_directory": destination_2,
+                "exclude_suffixes_list": [
+                    ".sfk",
+                    ".pk"
+                ],
+                "ignore_directories": [
+                    Path("C:\\Temp_3\\NoDir")
+                ],
+                "force_copy_flag": False,
+                "delete_old_files_flag": True
+            }
+        }
+    }
+
+    expected_keys = ["Thing_1", "Thing_2"]
+    thing_1_expected_source_directories = [temp_1, temp_2]
+    thing_2_expected_source_directories = [temp_3, temp_4]
+
+    result = FileManagerServiceConfiguration.from_dict(configuration_dict=configuration_dict_contents)
+
+    result_services = result.services
+
+    return make_namedtuple(
+        "setup_one_inventory",
+        result_services=result_services,
+        expected_keys=expected_keys,
+        thing_1_expected_source_directories=thing_1_expected_source_directories,
+        thing_1_expected_destination_directory=destination,
+        thing_2_expected_source_directories=thing_2_expected_source_directories,
+        thing_2_expected_destination_directory=destination_2
+    )
+
+def test_two_services_is_dict(setup_two_inventory):
+    assert isinstance(setup_two_inventory.result_services, dict)
+
+def test_two_services_len_is_two(setup_two_inventory):
+    assert len(setup_two_inventory.result_services) == 2
+
+def test_two_services_has_expected_keys(setup_two_inventory):
+    assert list(setup_two_inventory.result_services.keys()) == setup_two_inventory.expected_keys
+
+def test_two_thing_1_is_bulkcopier(setup_two_inventory):
+    thing_1 = setup_two_inventory.result_services["Thing_1"]
+    assert isinstance(thing_1, BulkCopier)
+
+def test_two_thing_1_has_source_directories(setup_two_inventory):
+    thing_1 = setup_two_inventory.result_services["Thing_1"]
+    assert thing_1.source_directories == setup_two_inventory.thing_1_expected_source_directories
+
+def test_two_thing_1_has_destination_directory(setup_two_inventory):
+    thing_1 = setup_two_inventory.result_services["Thing_1"]
+    assert thing_1.destination_directory == setup_two_inventory.thing_1_expected_destination_directory
+
+def test_two_thing_2_is_bulkcopier(setup_two_inventory):
+    thing_2 = setup_two_inventory.result_services["Thing_2"]
+    assert isinstance(thing_2, BulkCopier)
+
+def test_two_thing_2_has_source_directories(setup_two_inventory):
+    thing_2 = setup_two_inventory.result_services["Thing_2"]
+    assert thing_2.source_directories == setup_two_inventory.thing_2_expected_source_directories
+
+def test_two_thing_2_has_destination_directory(setup_two_inventory):
+    thing_2 = setup_two_inventory.result_services["Thing_2"]
+    assert thing_2.destination_directory == setup_two_inventory.thing_2_expected_destination_directory

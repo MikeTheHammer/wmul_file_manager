@@ -30,110 +30,75 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from collections.abc import Callable
-from dataclasses import dataclass
-import re
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader
 import yaml
+from dataclasses import dataclass
+from pydantic import BaseModel
+from wmul_file_manager.ArgumentBase import ArgumentBase
+from wmul_file_manager.BulkCopier import BulkCopierArguments as BulkCopier
+
+_services_available: dict[str, type[ArgumentBase]] = {
+    "bulkcopier": BulkCopier 
+}
 
 
-@dataclass
-class _FunctionValidator:
-    name: str
-    regex: re.Pattern
-    validate: Callable[[dict], bool]
+class FileManagerServiceConfiguration(BaseModel):
+    services: dict[str, ArgumentBase]
 
-
-def _dictionary_validator(item_under_test: dict) -> bool:
-    if not isinstance(item_under_test, dict):
-        raise ValueError(
-            f"The configuration requires a dictionary type. Instead, it received '{type(function_arguments_dict)}'."
-        )
-    return True
-
-
-def _list_validator(item_under_test: list) -> bool:
-    if not isinstance(item_under_test, list):
-        raise ValueError(
-            f"This argument requires a list type. Instead, it received '{type(function_arguments_dict)}'."
-        )
-    return True
-
-
-def _required_arguments_validator(arguments_dict: dict, required_arguments: list[str]) -> bool:
-    for ra in required_arguments:
-        if not ra in arguments_dict:
-            raise ValueError(f"The function configuration is missing required argument '{ra}' .")
-    return True
-
-
-def _bulk_copier_validator(function_arguments_dict) -> bool:
-    try:
-        _dictionary_validator(item_under_test=function_arguments_dict)
-        _required_arguments_validator(
-            arguments_dict=function_arguments_dict,
-            required_arguments=["source_directories", "destination_directory"]
-        )
-        source_directories = function_arguments_dict["source_directories"]
-        _list_validator(source_directories)
-    except ValueError as ve:
-        raise ValueError("Bulk Copier configuration is invalid.") from ve
-    return True
-
-_function_validators: list[_FunctionValidator] = [
-    _FunctionValidator(name="Bulk Copier", regex=re.compile("bulk[-|_| ]?copier"), validate=_bulk_copier_validator)
-]
-
-
-
-
-class ServiceConfigurationValidator:
-
-    def validate_service_configuration(self, configuration):
-        for inventory_name, function_dict in configuration.items():
+    @classmethod
+    def from_dict(cls, configuration_dict: dict[str, dict]):
+        services: dict[str, ArgumentBase] = {}
+        for inventory_name, service_configuration_dict in configuration_dict.items():
             try:
-                self._validate_function_dict(function_dict=function_dict)
-                for function_name, function_arguments_dict in function_dict.items():
-                    function_validator = self._find_function_validator(function_name)
-                    function_validator.validate(function_arguments_dict)
+                cls._validate_service_configuration_dict(service_configuration_dict)
+                for service_type, service_arguments in service_configuration_dict.items():
+                    service_constructor = cls._get_service_constructor(service_type)
+                    services[inventory_name] = service_constructor(**service_arguments)
             except ValueError as ve:
-                raise ValueError(f"The inventory entry, '{inventory_name}' has an invalid configuration.") from ve
-            
+                raise ValueError(f"Service: {inventory_name} has an incorrect configuration.") from ve
+        return cls(services=services)
 
-    def _validate_function_dict(self, function_dict) -> bool:
-        _dictionary_validator(item_under_test=function_dict)
-
-        if (count_of_function_names := len(function_dict)) != 1:
+    @classmethod
+    def _validate_service_configuration_dict(cls, service_configuration_dict) -> bool:
+        if not isinstance(service_configuration_dict, dict):
             raise ValueError(
-                f"The inventory entry does not have the correct number of function names. There must be exactly one "
-                f"function name per inventory entry. This entry has {count_of_function_names}: "
-                f"{list(function_dict.keys())} ."
-            )
-
+                    f"The configuration for the service requires a dictionary type. Instead, it received Type: "
+                    f"'{type(service_configuration_dict)}', {service_configuration_dict} ."
+                )
+        if (count_of_function_names := len(service_configuration_dict)) != 1:
+            raise ValueError(
+                    f"The configuration for the service does not have the correct number of function names. There "
+                    f"must be exactly one function name per service. This entry has {count_of_function_names}: "
+                    f"{list(service_configuration_dict.keys())} ."
+                )
         return True
 
-    def _find_function_validator(self, function_name):
-        for fv in _function_validators:
-            if fv.regex.fullmatch(function_name):
-                return fv
-        raise ValueError(
-            f"The function_name '{function_name}', cannot be matched to a function available in wmul_file_manager. The "
-            "valid function names are: 'bulk-copier'.")
-     
+    @classmethod
+    def _get_service_constructor(cls, service_type: str) -> type[ArgumentBase]:
+        try:
+            return _services_available[service_type.casefold()]
+        except KeyError:
+            raise ValueError(
+                f"The service wants service type '{service_type}', but there is no service available "
+                f"with that type. The available services are: {list(_services_available.keys())}"
+            )
+
+        
+
 
 
 @dataclass
-class WMULFileManagerService:
+class FileManagerService:
     config_filename: str
 
-    def _load_config_from_file(self):
+    def _load_config_from_file(self) -> dict[str, dict]:
         with open(self.config_filename) as config_file:
-            return yaml.safe_load(config_file.read())
-        
-    def validate_configuration(self, configuration):
-        
-        ...
+            return yaml.load(config_file.read(), SafeLoader)
 
     def service_loop(self):
-        configuration = self._load_config_from_file()
-
-    
+        configuration_dict = self._load_config_from_file()
+        configuration = FileManagerServiceConfiguration.from_dict(configuration_dict=configuration_dict)
+        return configuration
