@@ -29,7 +29,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
-class ArgumentBase(BaseModel):
-    pass
+class ArgumentBase(BaseModel, ABC):
+    
+    @abstractmethod
+    def run_script(self):
+        pass
