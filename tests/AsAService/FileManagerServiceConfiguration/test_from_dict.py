@@ -29,7 +29,7 @@ SOFTWARE.
 """
 import pytest
 from pathlib import Path
-from wmul_file_manager.AsAService import create_services_from_dict
+from wmul_file_manager.AsAService import InventoryService, create_services_from_dict
 from wmul_file_manager.BulkCopier import BulkCopier
 from wmul_test_utils import make_namedtuple
 
@@ -39,9 +39,10 @@ def setup_one_inventory():
     temp_1 = Path("C:\\Temp_1")
     temp_2 = Path("C:\\Temp_2")
     destination = Path("C:\\Destination")
+    inventory_name = "Thing_1"
 
     configuration_dict_contents = { 
-        "Thing_1": {
+        inventory_name: {
             "bulkcopier": {
                 "source_directories": [
                     temp_1,
@@ -61,7 +62,6 @@ def setup_one_inventory():
         }
     }
 
-    expected_keys = ["Thing_1"]
     expected_source_directories = [temp_1, temp_2]
 
     result_services = create_services_from_dict(configuration_dict=configuration_dict_contents)
@@ -69,31 +69,41 @@ def setup_one_inventory():
     return make_namedtuple(
         "setup_one_inventory",
         result_services=result_services,
-        expected_keys=expected_keys,
+        expected_inventory_name=inventory_name,
         expected_source_directories=expected_source_directories,
         expected_destination_directory=destination
     )
 
-def test_one_services_is_dict(setup_one_inventory):
-    assert isinstance(setup_one_inventory.result_services, dict)
+def test_one_services_is_list(setup_one_inventory):
+    assert isinstance(setup_one_inventory.result_services, list)
 
 def test_one_services_len_is_one(setup_one_inventory):
     assert len(setup_one_inventory.result_services) == 1
 
-def test_one_services_has_expected_keys(setup_one_inventory):
-    assert list(setup_one_inventory.result_services.keys()) == setup_one_inventory.expected_keys
+def test_one_thing_1_is_inventory_service(setup_one_inventory):
+    thing_1 = setup_one_inventory.result_services[0]
+    assert isinstance(thing_1, InventoryService)
 
-def test_one_thing_1_is_bulkcopier(setup_one_inventory):
-    thing_1 = setup_one_inventory.result_services["Thing_1"]
-    assert isinstance(thing_1, BulkCopier)
+def test_one_thing_1_has_correct_inventory_name(setup_one_inventory):
+    thing_1 = setup_one_inventory.result_services[0]
+    expected_inventory_name = setup_one_inventory.expected_inventory_name
+    assert thing_1.inventory_name == expected_inventory_name
 
-def test_one_thing_1_has_source_directories(setup_one_inventory):
-    thing_1 = setup_one_inventory.result_services["Thing_1"]
-    assert thing_1.source_directories == setup_one_inventory.expected_source_directories
+def test_one_thing_1_run_forever_false(setup_one_inventory):
+    thing_1 = setup_one_inventory.result_services[0]
+    assert not thing_1.run_forever
 
-def test_one_thing_1_has_destination_directory(setup_one_inventory):
-    thing_1 = setup_one_inventory.result_services["Thing_1"]
-    assert thing_1.destination_directory == setup_one_inventory.expected_destination_directory
+def test_one_thing_1_service_is_bulk_copier(setup_one_inventory):
+    thing_1_service = setup_one_inventory.result_services[0].service
+    assert isinstance(thing_1_service, BulkCopier)
+
+def test_one_thing_1_service_has_source_directories(setup_one_inventory):
+    thing_1_service = setup_one_inventory.result_services[0].service
+    assert thing_1_service.source_directories == setup_one_inventory.expected_source_directories
+
+def test_one_thing_1_servic_has_destination_directory(setup_one_inventory):
+    thing_1_service = setup_one_inventory.result_services[0].service
+    assert thing_1_service.destination_directory == setup_one_inventory.expected_destination_directory
 
 
 @pytest.fixture(scope="function")
@@ -106,8 +116,11 @@ def setup_two_inventory():
     temp_4 = Path("C:\\Temp_4")
     destination_2 = Path("C:\\Destination_2")
 
+    inventory_name_1 = "Thing_1"
+    inventory_name_2 = "Thing_2"
+
     configuration_dict_contents = { 
-        "Thing_1": {
+        inventory_name_1: {
             "bulkcopier": {
                 "source_directories": [
                     temp_1,
@@ -125,8 +138,9 @@ def setup_two_inventory():
                 "delete_old_files_flag": True
             }
         },
-        "Thing_2": {
+        inventory_name_2: {
             "bulkcopier": {
+                "run_forever": True,
                 "source_directories": [
                     temp_3,
                     temp_4
@@ -145,7 +159,6 @@ def setup_two_inventory():
         }
     }
 
-    expected_keys = ["Thing_1", "Thing_2"]
     thing_1_expected_source_directories = [temp_1, temp_2]
     thing_2_expected_source_directories = [temp_3, temp_4]
 
@@ -154,42 +167,66 @@ def setup_two_inventory():
     return make_namedtuple(
         "setup_one_inventory",
         result_services=result_services,
-        expected_keys=expected_keys,
+        thing_1_expected_inventory_name=inventory_name_1,
+        thing_2_expected_inventory_name=inventory_name_2,
         thing_1_expected_source_directories=thing_1_expected_source_directories,
         thing_1_expected_destination_directory=destination,
         thing_2_expected_source_directories=thing_2_expected_source_directories,
         thing_2_expected_destination_directory=destination_2
     )
 
-def test_two_services_is_dict(setup_two_inventory):
-    assert isinstance(setup_two_inventory.result_services, dict)
+def test_two_services_is_list(setup_two_inventory):
+    assert isinstance(setup_two_inventory.result_services, list)
 
 def test_two_services_len_is_two(setup_two_inventory):
     assert len(setup_two_inventory.result_services) == 2
 
-def test_two_services_has_expected_keys(setup_two_inventory):
-    assert list(setup_two_inventory.result_services.keys()) == setup_two_inventory.expected_keys
+def test_two_thing_1_is_inventory_service(setup_two_inventory):
+    thing_1 = setup_two_inventory.result_services[0]
+    assert isinstance(thing_1, InventoryService)
 
-def test_two_thing_1_is_bulkcopier(setup_two_inventory):
-    thing_1 = setup_two_inventory.result_services["Thing_1"]
-    assert isinstance(thing_1, BulkCopier)
+def test_two_thing_1_has_correct_inventory_name(setup_two_inventory):
+    thing_1 = setup_two_inventory.result_services[0]
+    expected_inventory_name = setup_two_inventory.thing_1_expected_inventory_name
+    assert thing_1.inventory_name == expected_inventory_name
 
-def test_two_thing_1_has_source_directories(setup_two_inventory):
-    thing_1 = setup_two_inventory.result_services["Thing_1"]
-    assert thing_1.source_directories == setup_two_inventory.thing_1_expected_source_directories
+def test_two_thing_1_run_forever_false(setup_two_inventory):
+    thing_1 = setup_two_inventory.result_services[0]
+    assert not thing_1.run_forever
 
-def test_two_thing_1_has_destination_directory(setup_two_inventory):
-    thing_1 = setup_two_inventory.result_services["Thing_1"]
-    assert thing_1.destination_directory == setup_two_inventory.thing_1_expected_destination_directory
+def test_two_thing_1_service_is_bulkcopier(setup_two_inventory):
+    thing_1_service = setup_two_inventory.result_services[0].service
+    assert isinstance(thing_1_service, BulkCopier)
 
-def test_two_thing_2_is_bulkcopier(setup_two_inventory):
-    thing_2 = setup_two_inventory.result_services["Thing_2"]
-    assert isinstance(thing_2, BulkCopier)
+def test_two_thing_1_service_has_source_directories(setup_two_inventory):
+    thing_1_service = setup_two_inventory.result_services[0].service
+    assert thing_1_service.source_directories == setup_two_inventory.thing_1_expected_source_directories
+
+def test_two_thing_1_service_has_destination_directory(setup_two_inventory):
+    thing_1_service = setup_two_inventory.result_services[0].service
+    assert thing_1_service.destination_directory == setup_two_inventory.thing_1_expected_destination_directory
+
+def test_two_thing_2_is_inventory_service(setup_two_inventory):
+    thing_2 = setup_two_inventory.result_services[1]
+    assert isinstance(thing_2, InventoryService)
+
+def test_two_thing_2_has_correct_inventory_name(setup_two_inventory):
+    thing_2 = setup_two_inventory.result_services[1]
+    expected_inventory_name = setup_two_inventory.thing_2_expected_inventory_name
+    assert thing_2.inventory_name == expected_inventory_name
+
+def test_two_thing_2_run_forever_false(setup_two_inventory):
+    thing_2 = setup_two_inventory.result_services[1]
+    assert thing_2.run_forever
+
+def test_two_thing_2_service_is_bulkcopier(setup_two_inventory):
+    thing_2_service = setup_two_inventory.result_services[1].service
+    assert isinstance(thing_2_service, BulkCopier)
 
 def test_two_thing_2_has_source_directories(setup_two_inventory):
-    thing_2 = setup_two_inventory.result_services["Thing_2"]
-    assert thing_2.source_directories == setup_two_inventory.thing_2_expected_source_directories
+    thing_2_service = setup_two_inventory.result_services[1].service
+    assert thing_2_service.source_directories == setup_two_inventory.thing_2_expected_source_directories
 
 def test_two_thing_2_has_destination_directory(setup_two_inventory):
-    thing_2 = setup_two_inventory.result_services["Thing_2"]
-    assert thing_2.destination_directory == setup_two_inventory.thing_2_expected_destination_directory
+    thing_2_service = setup_two_inventory.result_services[1].service
+    assert thing_2_service.destination_directory == setup_two_inventory.thing_2_expected_destination_directory

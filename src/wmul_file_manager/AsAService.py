@@ -44,14 +44,38 @@ _services_available: dict[str, type[ArgumentBase]] = {
 }
 
 
-def create_services_from_dict(configuration_dict: dict[str, dict]):
-    services: dict[str, ArgumentBase] = {}
+@dataclass
+class InventoryService:
+    inventory_name: str
+    run_forever: bool
+    service: ArgumentBase
+    needs_to_run: bool = True
+
+    @classmethod
+    def from_dict(cls, inventory_name: str, service_arguments: dict, service_constructor: type[ArgumentBase]):
+        run_forever = service_arguments.get("run_forever", False)
+        service = service_constructor(**service_arguments)
+        return cls(inventory_name=inventory_name, run_forever=run_forever, service=service)
+
+    def run_script(self) -> None:
+        if self.needs_to_run:
+            self.service.run_script()
+            self.needs_to_run = self.run_forever
+
+
+def create_services_from_dict(configuration_dict: dict[str, dict]) -> list[InventoryService]:
+    services: list[InventoryService] = []
     for inventory_name, service_configuration_dict in configuration_dict.items():
         try:
             _validate_service_configuration_dict(service_configuration_dict)
             for service_type, service_arguments in service_configuration_dict.items():
                 service_constructor = _get_service_constructor(service_type)
-                services[inventory_name] = service_constructor(**service_arguments)
+                service = InventoryService.from_dict(
+                    inventory_name=inventory_name,
+                    service_arguments=service_arguments,
+                    service_constructor=service_constructor
+                )
+                services.append(service)
         except ValueError as ve:
             raise ValueError(f"Service: {inventory_name} has an incorrect configuration.") from ve
     return services
