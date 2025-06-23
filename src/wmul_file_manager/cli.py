@@ -4,6 +4,8 @@
 This file exposes the command-line interface to the script.
 
 ============ Change Log ============
+2025-Jun-23 = Fix bug in annual_archiver that used the wrong folders for compression.
+
 2024-May-13 = Add compress-media-in-folder, convert-folder-to-mp4.
 
 2024-May-03 = Made Delete Old Files timezone aware.
@@ -43,7 +45,7 @@ This file exposes the command-line interface to the script.
 ============ License ============
 The MIT License (MIT)
 
-Copyright (c) 2018, 2023-2024 Michael Stanley
+Copyright (c) 2018, 2023-2025 Michael Stanley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -655,13 +657,13 @@ def annual_archive(sources, destination, equivalent, junk_suffix, junk_name, equ
         ffprobe_executable=ffprobe_executable
     )
     
-    source_folders = [Path(source_path) for source_path in sources]
+    source_folders = [destination]
 
     cmif = CompressMediaInFolder(
         source_paths=source_folders,
         audio_compressor=audio_compressor,
         video_compressor=video_compressor,
-        separate_folder_flag=True,
+        separate_folder_flag=False,
         delete_files_flag=True
     )
 

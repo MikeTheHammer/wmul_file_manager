@@ -220,6 +220,7 @@ def test_annual_archiver_normal_path(setup_annual_archiver, capsys, caplog):
     assert result.exit_code == 0
 
     expected_sources = [source_1, source_2]
+    expected_sources_compress_folder = [destination_folder]
 
     expected_djf_args = DeleteJunkFilesArguments(
         source_paths=expected_sources,
@@ -253,4 +254,4 @@ def test_annual_archiver_normal_path(setup_annual_archiver, capsys, caplog):
 
     compress_media_in_folder = call_kwargs['compress_media_in_folder']
 
-    assert compress_media_in_folder.source_paths == expected_sources
+    assert compress_media_in_folder.source_paths == expected_sources_compress_folder
