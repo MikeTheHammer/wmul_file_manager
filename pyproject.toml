@@ -22,7 +22,8 @@ dependencies = [
   "wmul_emailer>=0.6.0",
   "click",
   "networkx",
-  "tzdata"
+  "tzdata",
+  "pydantic"
 ]
 
 [project.scripts]
